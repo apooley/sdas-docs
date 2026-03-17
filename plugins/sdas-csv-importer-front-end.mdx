@@ -1,0 +1,176 @@
+---
+title: SDAS CSV Importer front-end guide
+description: Learn how the SDAS CSV Importer affects vehicle inventory pages, what to QA after imports, and how to handle background processing delays with visitors.
+---
+
+## How the CSV importer affects your front end
+
+`sdas-csv-importer` is a CSV-based vehicle import pipeline with background processing and image re-processing. It does not add new widgets or visitor-facing UI elements to your theme.
+
+<Callout kind="info">
+
+The importer runs on the admin/server side only. Admin users trigger imports and configuration in the dashboard, and cron/background jobs handle scheduled imports, hourly processing, and daily cleanup. Visitors never interact with the importer directly, and there are no shortcodes or front-end widgets tied to it.
+
+</Callout>
+
+<Callout kind="info">
+
+The importer changes **what visitors see**, not **how they interact**. It populates inventory records and images that your existing SDAS Inventory templates and filters render on vehicle listing and detail pages.
+
+</Callout>
+
+Front-end teams should treat each import (manual or scheduled) as a content deployment that can change:
+
+- Which vehicles appear on listing pages
+- Vehicle detail content (pricing, specs, descriptions)
+- Vehicle images and image order
+- Availability badges and any inventory-driven labels
+
+Once an import runs, validate that your inventory templates still behave as expected and that design assumptions still hold with the new data.
+
+## What changes on the front end after an import
+
+Imports update SDAS Inventory data and image metadata, which SDAS Inventory front-end templates then render on listing and detail pages.
+
+- **Vehicles are created or updated in SDAS Inventory**: The importer upserts vehicle posts in the SDAS Inventory vehicle post type. New rows in the CSV create new vehicle posts; existing rows update matching vehicles so listing and detail pages reflect current pricing, specs, and availability.
+- **Images are downloaded and re-processed**: Import runs may download new source images and update image-related meta for existing vehicles. Background processors like ReImage or a CDN pipeline can later optimize or rewrite image URLs, so the same vehicle may serve different image URLs or sizes over time even if the front-end template does not change.
+- **Vehicles can appear or disappear**: When the upstream feed adds vehicles, they appear on listing and search results after import. When the feed removes or marks vehicles as no longer available, those vehicles can drop out of your inventory pages or change their availability badges, depending on your SDAS Inventory configuration.
+
+From a visitor perspective, these changes look like inventory and media updates, not theme changes. Your templates, filters, and layout stay the same, but the content they render can shift significantly with each import.
+
+## How it interacts with other layers
+
+The CSV importer plugs into the broader SDAS stack. Front-end behavior comes from how other plugins read and present the imported data.
+
+- **SDAS Inventory**: SDAS Inventory templates and shortcodes render whatever vehicles and metadata the importer writes to the vehicle post type. If the importer changes a price, status, or image gallery, the next page load immediately reflects those changes in SDAS Inventory front-end components.
+- **SDAS Vehicle Filters**: Vehicle Filters evaluate the current inventory on each filter or search request. When an import adds, removes, or updates vehicles or filterable fields (for example, body style, year, fuel type), those changes automatically appear the next time a visitor runs a filter query.
+- **SDAS Tracking Hub**: Tracking Hub instruments inventory list and vehicle detail views. After large imports or structural feed changes, re-validate that tracking events still fire with the correct vehicle IDs, prices, and metadata so reporting stays aligned with the new inventory set.
+
+If you see unexpected behavior in listings, filters, or tracking after an import, debug from the bottom up: confirm the imported SDAS Inventory vehicle data first, then verify Vehicle Filters queries, then confirm Tracking Hub events.
+
+## What does not change
+
+The CSV importer leaves your front-end building blocks intact:
+
+- No new shortcodes, blocks, or template tags for visitors
+- No automatic changes to page layouts, typography, or navigation
+- No filter, search, or form components added to the UI
+
+If you already use plugins like SDAS Inventory or SDAS Vehicle Filters, those components continue to render as before. The importer only changes the underlying inventory content they read from.
+
+## Post-import QA checklist for front-end teams
+
+Use this checklist after each import, especially when CSV structure, image sources, or upstream data providers change.
+
+<Steps>
+
+  <Step title="Confirm vehicles appear as expected on listing pages" icon="monitor">
+
+  - Open your primary inventory listing page (for example, `/inventory`).
+  - Check that expected vehicles (recently added or updated in CSV) now appear.
+  - Verify that total counts, pagination, and any "no results" states still look correct.
+
+  A successful check shows updated vehicles in the list with no layout shifts, broken cards, or unexpected empty states.
+
+  </Step>
+
+  <Step title="Spot-check vehicle detail templates" icon="code">
+
+  - Open several vehicle detail pages that were updated in the import.
+  - Verify key fields: titles, prices, VINs, specs, badges, and custom fields.
+  - Look for broken assumptions (for example, missing fields that your template expects).
+
+  If templates render without PHP errors or obvious gaps and the content matches what you expect from the CSV, this step passes.
+
+  </Step>
+
+  <Step title="Validate images and galleries after re-processing" icon="image">
+
+  - Inspect vehicle image galleries for a mix of imported and re-processed images.
+  - Check for broken images, incorrect aspect ratios, or unexpected cropping.
+  - Confirm that your "hero" image and thumbnail grid still look consistent across vehicles.
+
+  Successful validation shows all images loading, with consistent sizing and alignment across your grid and detail views.
+
+  </Step>
+
+  <Step title="Test filters, search, and sort behavior" icon="settings">
+
+  - Use common filters (make, model, price range, mileage, body type) on listing pages.
+  - Run a few searches that should match vehicles updated by the import.
+  - Change sort order (for example, price or newest) and confirm stable layouts and relevant results.
+
+  This step passes when filter and search combinations return reasonable sets of vehicles without breaking the layout or producing confusing empty states.
+
+  </Step>
+
+  <Step title="Check responsive layouts with new content" icon="monitor">
+
+  - Test key inventory pages on mobile, tablet, and desktop breakpoints.
+  - Pay attention to long titles, extended spec lists, and new price formats from the CSV.
+  - Confirm that text wraps gracefully and that galleries remain usable on small screens.
+
+  When content looks good across breakpoints and no elements overflow or overlap, your responsive design is compatible with the new import data.
+
+  </Step>
+
+  <Step title="Confirm tracking and conversions still fire" icon="activity">
+
+  - Trigger typical user paths: viewing a listing, opening a detail page, submitting interest forms.
+  - Verify that any tracking tied to vehicle IDs or inventory metadata still receives correct values.
+  - Check that conversion goals related to inventory pages remain attributed correctly.
+
+  If analytics tools show page views and events for updated vehicles as expected, your tracking is in good shape.
+
+  </Step>
+
+</Steps>
+
+## Handling background processing and delays
+
+Background processing allows larger imports and image re-processing without blocking the site, but it also means visitors might not see updates immediately.
+
+When background processing is active:
+
+- New or updated vehicles may appear **without** final image sets.
+- Some images might briefly appear low quality or in-progress while re-processing completes.
+- Inventory changes might roll out progressively as batches finish.
+
+### How to communicate status to stakeholders and visitors
+
+Align with product owners and content teams on how to talk about these delays:
+
+- For internal teams: share approximate timelines for when imported vehicles and images will fully stabilize on the site.
+- For customer-facing communication: avoid promising instant updates after every CSV upload; instead, describe updates as "processed shortly" or "available after syncing."
+
+If you expose any "New arrivals" or "Recently updated" sections, consider:
+
+- Adding a small internal-only note in admin tools or dashboards about processing status.
+- Coordinating releases so marketing campaigns launch **after** imports and background jobs have finished.
+
+<Callout kind="info">
+
+If background jobs are still running, treat the inventory as **in flux**. Delay high-visibility announcements or major traffic pushes to inventory pages until processing completes and you finish the QA checklist.
+
+</Callout>
+
+## Where to configure and run imports
+
+Front-end teams often need to know where imports are configured so they can anticipate changes and schedule QA.
+
+Use the main SDAS CSV Importer plugin page for configuration, scheduling, and operational details.
+
+<Columns cols={1}>
+
+  <Card
+    title="Configure SDAS CSV Importer"
+    href="/plugins/sdas-csv-importer"
+    icon="upload"
+    cta="Open importer docs"
+  >
+
+  Learn how to set up CSV sources, schedule imports, and monitor background processing so you can coordinate front-end QA and releases.
+
+  </Card>
+
+</Columns>

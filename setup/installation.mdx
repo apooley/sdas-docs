@@ -1,0 +1,255 @@
+---
+title: Install and activate SDAS
+description: Install the SDAS core MU-plugin and feature plugins in WordPress, ensure the loader is present, and activate dependencies in the correct order.
+---
+
+## Prerequisites
+
+SDAS runs as a combination of a must-use (MU) core plugin and standard feature plugins. Before you deploy anything, confirm your WordPress environment is ready.
+
+<Callout kind="info">
+
+- Access to the WordPress filesystem (SSH, SFTP, or CI/CD deploys).
+- Ability to modify the `wp-content` directory (including `mu-plugins`).
+- Administrator access to the WordPress dashboard to activate plugins.
+- A staging environment where you can test SDAS before production.
+
+</Callout>
+
+If `wp-content/mu-plugins/` does not exist, create it before continuing.
+
+## Install the MU-plugin core
+
+SDAS Core provides shared services and is loaded as a must-use plugin so that all SDAS feature plugins can assume it is available.
+
+### Why a loader file is required
+
+WordPress automatically loads all PHP files directly in `wp-content/mu-plugins/`, but it does not recurse into subdirectories. SDAS Core lives in a subdirectory, so you must have a small loader file at the top level.
+
+<CodeGroup tabs="Loader file,Core directory">
+
+```bash
+# MU-plugin loader file
+wp-content/mu-plugins/sdas-core-loader.php
+```
+
+```bash
+# MU-plugin core directory
+wp-content/mu-plugins/sdas-core/
+```
+
+</CodeGroup>
+
+The loader file is responsible for requiring the main SDAS Core plugin file from the `sdas-core` directory.
+
+### Step-by-step: deploy and verify SDAS Core
+
+<Steps>
+
+<Step title="Create or confirm the mu-plugins structure" icon="folder">
+
+Make sure the MU-plugins directory exists and is writable by your deploy process.
+
+<CodeGroup tabs="Check structure">
+
+```bash
+wp-content/
+  mu-plugins/
+    sdas-core-loader.php     # Loader file (this file is required)
+    sdas-core/               # SDAS Core plugin directory
+      sdas-core.php
+      includes/
+      ...
+```
+
+</CodeGroup>
+
+If `mu-plugins/` does not exist, create it and commit it to your repository or provisioning scripts.
+
+</Step>
+
+<Step title="Deploy the sdas-core directory" icon="upload">
+
+Copy the entire SDAS Core plugin directory into `wp-content/mu-plugins/sdas-core/` in your environment.
+
+<CodeGroup tabs="Core path">
+
+```bash
+# Target path for SDAS Core
+wp-content/mu-plugins/sdas-core/
+```
+
+</CodeGroup>
+
+After deployment, confirm that `sdas-core.php` (or the main plugin bootstrap file) is present directly under `sdas-core/`.
+
+</Step>
+
+<Step title="Ensure the sdas-core-loader.php file exists" icon="code">
+
+Place the loader file at `wp-content/mu-plugins/sdas-core-loader.php`. This file runs on every request and loads the core plugin from the subdirectory.
+
+<CodeGroup tabs="Loader example">
+
+```php
+<?php
+/**
+ * Plugin Name: SDAS Core Loader
+ * Description: Loads the SDAS Core MU-plugin from the sdas-core directory.
+ */
+
+$sdas_core_path = __DIR__ . '/sdas-core/sdas-core.php';
+
+if (file_exists($sdas_core_path)) {
+    require_once $sdas_core_path;
+}
+```
+
+</CodeGroup>
+
+If your core bootstrap file has a different name, update the `$sdas_core_path` accordingly, but keep the loader in the `mu-plugins` root.
+
+</Step>
+
+<Step title="Verify SDAS Core is loaded" icon="check">
+
+Log in to the WordPress admin dashboard and navigate to **Plugins → Must-Use**. You should see an entry for SDAS Core (loaded via the loader).
+
+If SDAS Core does not appear:
+
+- Check that `sdas-core-loader.php` is readable and contains valid PHP.
+- Confirm the path it requires matches the actual file name in `sdas-core/`.
+- Look for PHP errors in your web server logs that might prevent WordPress from loading MU-plugins.
+
+</Step>
+
+</Steps>
+
+## Install and activate feature plugins
+
+Feature plugins extend SDAS Core with inventory, forms, CRM, tracking, and other functionality. They are standard WordPress plugins that live under `wp-content/plugins/` and depend on SDAS Core being available.
+
+### Available SDAS feature plugins
+
+Deploy each feature plugin as its own directory under `wp-content/plugins/` using the slug as the folder name:
+
+<CodeGroup tabs="Plugin paths">
+
+```bash
+wp-content/plugins/sdas-inventory/
+wp-content/plugins/sdas-forms-extension/
+wp-content/plugins/sdas-crm-connector/
+wp-content/plugins/sdas-csv-importer/
+wp-content/plugins/sdas-vehicle-filters/
+wp-content/plugins/sdas-tracking-hub/
+wp-content/plugins/sdas-openai-pages/
+wp-content/plugins/sdas-custom-breakdance-elements/
+wp-content/plugins/sdas-dealership-content/
+wp-content/plugins/sdas-nocodebackend-sync/
+```
+
+</CodeGroup>
+
+Most of these plugins depend on SDAS Core; some also expect inventory and/or WPForms to be active.
+
+### Recommended activation order
+
+Activate plugins in an order that respects dependencies. Once SDAS Core is visible under Must-Use plugins, follow this sequence.
+
+<Steps>
+
+<Step title="Activate foundational dependencies" icon="settings">
+
+From the WordPress admin, go to **Plugins → Installed Plugins** and ensure:
+
+- **WPForms** (or your chosen forms plugin, if required) is installed and active.
+- Any other third-party plugins that SDAS extensions rely on are active.
+
+Then confirm again that SDAS Core appears under **Must-Use**.
+
+</Step>
+
+<Step title="Activate sdas-inventory first" icon="database">
+
+Activate the **sdas-inventory** plugin:
+
+- In **Plugins → Installed Plugins**, locate **SDAS Inventory** (folder `sdas-inventory`).
+- Click **Activate**.
+
+Inventory often serves as a dependency for other SDAS plugins, so activate it before CRM connectors, filters, or content extensions that rely on inventory data.
+
+</Step>
+
+<Step title="Activate core SDAS extensions" icon="plus">
+
+Next, activate the main SDAS feature plugins you need:
+
+- **sdas-forms-extension** (integrates SDAS with WPForms-based flows).
+- **sdas-crm-connector** (syncs data to your CRM; usually depends on inventory and forms).
+- **sdas-vehicle-filters** (front-end filtering for vehicle inventory, depends on inventory).
+- **sdas-tracking-hub** (event and tracking integration; often relies on inventory and forms context).
+
+Activate each plugin one at a time and wait for the page reload to confirm success.
+
+</Step>
+
+<Step title="Activate optional/advanced plugins" icon="zap">
+
+Finally, activate optional or advanced plugins as required by your project:
+
+- **sdas-csv-importer** (bulk data import).
+- **sdas-openai-pages** (generated content).
+- **sdas-custom-breakdance-elements** (page builder integration).
+- **sdas-dealership-content** (dealer-specific content blocks).
+- **sdas-nocodebackend-sync** (synchronization with a no-code backend).
+
+If a plugin fails to activate with a fatal error, deactivate the last plugin you enabled, check PHP logs for missing dependencies, and verify that SDAS Core and `sdas-inventory` remain active.
+
+</Step>
+
+</Steps>
+
+## Post-install checklist
+
+Use this checklist to confirm SDAS is installed correctly and ready for use or further configuration.
+
+### Admin UI and menus
+
+After activation, check the WordPress admin dashboard:
+
+- Look for SDAS-related top-level or submenu items (for example, inventory, tracking, or CRM settings).
+- Open each new menu to confirm you do not see fatal PHP errors or capability issues.
+- Confirm that settings pages render and save without errors.
+
+Successful load of these pages is a strong signal that core dependencies are wired correctly.
+
+### Background processing and scheduled tasks
+
+Several SDAS plugins use background queues and scheduled tasks (commonly via Action Scheduler) for imports, sync jobs, and tracking events.
+
+- Navigate to any job/queue UI exposed by the plugins (for example, an **Action Scheduler** or **Tasks** screen).
+- Confirm that scheduled actions are being created after you perform relevant actions (form submissions, imports, syncs).
+- Verify that cron is running in your environment so scheduled tasks are processed.
+
+If your hosting provider disables WordPress cron, configure a system cron job to hit `wp-cron.php` on a schedule.
+
+### Environment validation
+
+Before you consider the installation complete, validate these points:
+
+- SDAS Core appears under **Plugins → Must-Use** with no errors.
+- Required feature plugins are **Active** under **Plugins → Installed Plugins**.
+- Any third-party dependencies (such as WPForms or CRM integrations) are configured and active.
+- No SDAS-related PHP errors appear in your error logs under normal usage.
+
+If you run SDAS in multiple environments (development, staging, production), repeat this checklist in each environment to catch configuration differences early.
+
+## Next steps
+
+Once installation is stable, move on to:
+
+- Configuring inventory sources and mappings.
+- Wiring up forms and CRM fields.
+- Testing tracking and background jobs under realistic traffic.
+
+Coordinate with your application team so they know which SDAS features are available and which plugins are active in each environment.

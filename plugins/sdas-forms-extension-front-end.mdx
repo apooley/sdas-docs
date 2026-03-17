@@ -1,0 +1,397 @@
+---
+title: SDAS Forms Extension front-end guide
+description: Build vehicle lead forms with SDAS Forms Extension on top of WPForms. Learn the visitor experience, front-end touchpoints, and cross-plugin lead flow.
+---
+
+## What SDAS Forms Extension does
+
+SDAS Forms Extension layers vehicle-lead behavior on top of standard WPForms forms. Visitors still see familiar forms, while the plugin turns each submission into a structured vehicle lead with ADF output and an auditable trail.
+
+The extension does not replace WPForms. It adds vehicle-awareness, routing, and tracking so your existing form-building workflow produces dealer-ready leads.
+
+<Callout kind="info">
+
+SDAS Forms Extension does **not** provide its own shortcodes or front-end blocks. Embed forms using standard **WPForms** methods (shortcodes, blocks, widgets) and SDAS will interpret submissions in the background.
+
+</Callout>
+
+<Callout kind="info">
+
+**Prerequisites**
+
+- A working WordPress site with **WPForms** installed and activated  
+- **SDAS Core (MU-plugin)** installed and active in the `mu-plugins` directory  
+- The **SDAS Forms Extension** plugin installed and activated
+
+If you are not sure whether SDAS Core is active, start with the [install and activate guide](/setup/installation).
+
+</Callout>
+
+## How it extends WPForms for vehicle leads
+
+SDAS Forms Extension focuses on three things:
+
+- Understanding that a submission is a **vehicle lead**
+- Ensuring the lead is **complete enough** for sales follow-up
+- Producing **structured outputs** (ADF + audit trail) for downstream systems
+
+You still build forms in the WPForms builder. The extension plugs into that workflow so each submission becomes a vehicle context, a contact record, and an event your CRM can consume.
+
+<Tabs>
+
+<Tab title="Visitor experience" icon="users">
+
+Visitors interact with normal-looking WPForms-based forms: contact, vehicle enquiry, trade-in, finance request, or service booking.
+
+You decide which fields to show, how to arrange them, and where the form appears on the site. The extension treats certain fields as special (like vehicle details and contact data) so the submission is recognized as a vehicle lead, but visitors only see a standard form.
+
+Common patterns for visitor-facing forms:
+
+- **Vehicle detail page lead forms**: "Check availability", "Book a test drive", "Ask about this vehicle"
+- **Global lead forms**: "Contact sales" with an optional vehicle selector
+- **Trade-in forms**: "Value your trade" with current vehicle details and contact info
+
+As soon as a visitor submits, they see the same kind of confirmation or redirect you configure in WPForms (success message, thank-you page, or redirect), while SDAS handles lead creation behind the scenes.
+
+</Tab>
+
+<Tab title="Site setup" icon="settings">
+
+Site builders and front-end developers configure which WPForms act as vehicle lead forms and how SDAS interprets submission data.
+
+Typical setup tasks:
+
+- **Choose which forms are vehicle leads**: Mark one or more existing WPForms as being used for vehicle enquiries, trade-ins, finance requests, or general sales leads.
+- **Map key fields**: Decide which WPForms fields represent contact details, vehicle information, and any other lead attributes you want SDAS to understand.
+- **Configure basic routing**: Define how SDAS should categorize or label leads so downstream systems (for example, CRM or internal queues) know where they belong.
+
+You still manage layout, styling, and front-end placement through WPForms and your theme. SDAS works alongside that, interpreting submissions without forcing a new form builder or markup.
+
+</Tab>
+
+<Tab title="What happens after submit" icon="bar-chart">
+
+After a visitor submits a configured form:
+
+- SDAS interprets the WPForms submission as a **vehicle lead**
+- A structured **ADF-style payload** is composed server-side using the field mappings you configured
+- A **lead audit trail entry** records what was captured, how it was interpreted, and where it was sent
+
+From the visitor’s perspective, nothing extra happens beyond your normal confirmation. From your operations perspective, each submission becomes a trackable, standardized lead you can follow through your system.
+
+Audit trails are visible to admins in the WordPress back end and do not appear on the public site.
+
+</Tab>
+
+</Tabs>
+
+## Front-end touchpoints
+
+Forms Extension integrates at a few specific front-end edges, while leaving the visitor experience and markup fully controlled by WPForms and your theme.
+
+### Submission processing hook
+
+When a visitor submits any WPForms form, WPForms fires the `wpforms_process_complete` action after validation and core processing.
+
+SDAS Forms Extension hooks into this action to inspect the submission and decide whether to treat it as a vehicle lead. This logic runs server-side and does not change the submit button behavior, confirmation messages, or redirects.
+
+```php
+<?php
+// Inside SDAS Forms Extension (simplified example)
+add_action(
+    'wpforms_process_complete',
+    function( $fields, $entry, $form_data, $entry_id ) {
+        // Decide if this form is configured as a vehicle lead form,
+        // then interpret and store the lead.
+        sdas_forms_process_lead( $fields, $form_data, $entry_id );
+    },
+    10,
+    4
+);
+```
+
+From a visitor’s point of view, the submission flow looks identical to a standard WPForms form: click submit, wait briefly, see the confirmation or redirect you configured.
+
+### Address field behavior (Canada-focused)
+
+When you add a WPForms **Address** field, WPForms lets you choose a country-specific scheme (field labels, province/state label, postal code label, and so on).
+
+SDAS Forms Extension customizes address handling so address fields default to a **Canada-oriented scheme**. That includes province-style labeling and Canadian address expectations.
+
+<Callout kind="info">
+
+If you use WPForms Address fields in lead forms, expect the address scheme to use **Canada** conventions by default (for example, provinces instead of states). This behavior comes from filters the extension adds to WPForms address schemes and default field data.
+
+</Callout>
+
+The plugin applies this behavior when you create new Address fields and when it prepares form data for the front end, so your front-end address labels stay consistent with Canadian dealership expectations.
+
+### Vehicle selector AJAX endpoint
+
+When your site uses SDAS inventory integration, you can build forms that include a **vehicle selector** wired into SDAS vehicles.
+
+SDAS Forms Extension exposes a public AJAX endpoint that WPForms or custom JavaScript can call to search for vehicles as the visitor types:
+
+- Logged-in route: `wp_ajax_sdas_get_vehicles`
+- Public route: `wp_ajax_nopriv_sdas_get_vehicles`
+
+A typical front-end flow looks like this:
+
+1. The visitor starts typing in a vehicle selector field (for example, stock number or model).
+2. Your JavaScript sends an AJAX request to `admin-ajax.php` with `action=sdas_get_vehicles` and the search term.
+3. The plugin queries SDAS vehicles and returns matches for you to render in the UI.
+
+```javascript
+// Example jQuery-based front-end search call
+jQuery(document).on("input", ".sdas-vehicle-selector", function () {
+  const query = jQuery(this).val().trim();
+
+  if (query.length < 2) {
+    return;
+  }
+
+  jQuery.ajax({
+    url: window.ajaxurl, // or localized admin-ajax URL
+    method: "POST",
+    dataType: "json",
+    data: {
+      action: "sdas_get_vehicles",
+      q: query
+    },
+    success(response) {
+      // Render dropdown options using the returned vehicle list
+      // for example: response.vehicles with stock, VIN, and title
+      renderVehicleSuggestions(response);
+    }
+  });
+});
+```
+
+The plugin owns the `sdas_get_vehicles` logic; you control how to present the returned vehicles in your form UI.
+
+## Build a vehicle lead form
+
+Use WPForms to design the form, then layer SDAS behavior on top. The extension does not change how you add fields or shortcodes to pages.
+
+<Steps>
+
+<Step title="Create or choose a WPForms form" icon="file-text">
+
+Start from a form that collects the information you want for a lead:
+
+- Use a **new form** for a dedicated vehicle enquiry, trade-in, or finance request
+- Or pick an **existing form** you already use for sales contact
+
+Make sure you include at least:
+
+- Contact details (name, email, phone, or similar)
+- A way to connect the lead to a vehicle (for example, a vehicle selector, VIN, stock number, or free-text vehicle description if nothing else is available)
+- Any additional fields your sales or BDC team expects when a lead arrives
+
+When you save the form, you have your basic front-end experience ready.
+
+</Step>
+
+<Step title="Place the form on vehicle pages" icon="monitor">
+
+Decide where visitors should see the lead form:
+
+- Embed the form on **vehicle detail pages** for high-intent "about this vehicle" leads
+- Add it to **landing pages** or a **contact page** for general sales enquiries
+- Use widgets, shortcodes, or block editor elements to match your theme’s layout
+
+Confirm that a visitor can reach the form from typical traffic paths (search, inventory listings, home page).
+
+From the front-end perspective, this is still just a standard WPForms embed.
+
+</Step>
+
+<Step title="Mark the form as a vehicle lead form" icon="settings">
+
+In the WordPress admin, use the SDAS Forms Extension settings to mark this WPForms form as a **vehicle lead form**.
+
+At a high level, this tells SDAS:
+
+- Treat submissions from this form as **vehicle-related leads**
+- Attach them to the vehicle context when the visitor reached the form from a specific vehicle page
+- Include these submissions in SDAS reporting and audit trails as leads, not generic form entries
+
+After this step, submitting the form will create a lead record in SDAS rather than only a plain WPForms entry.
+
+</Step>
+
+<Step title="Map key fields for contacts and vehicles" icon="database">
+
+Configure which WPForms fields SDAS should treat as:
+
+- **Contact details** (for example, person name, email, phone)
+- **Vehicle information** (for example, vehicle reference, stock identifier, or descriptive details)
+- **Lead meta** (for example, lead source, campaign, or intent like "test drive" vs "availability check")
+
+You do not need to change the field IDs or add special field types. Mapping tells SDAS which existing fields feed which parts of the lead and ADF payload.
+
+Accurate mapping ensures that downstream systems receive a complete and meaningful lead instead of a generic note.
+
+</Step>
+
+<Step title="Configure confirmations and test end-to-end" icon="check-circle">
+
+Use the normal WPForms settings for:
+
+- Success messages
+- Redirects to thank-you pages
+- Email notifications to your team, if desired
+
+Then test the full flow:
+
+- Visit a vehicle page or the page where the form is embedded
+- Submit a realistic test lead as a visitor would
+- Confirm you see the correct **on-page confirmation or redirect**
+- In the admin, confirm that SDAS recorded a **vehicle lead** with an associated **audit trail**
+
+When this works, your front-end form is live as a vehicle-aware SDAS lead source.
+
+</Step>
+
+</Steps>
+
+## What the visitor sees vs what the system does
+
+Visitors interact with a normal form and get a confirmation. SDAS quietly enriches the submission so it behaves like a dealership-grade lead.
+
+### Visitor-facing behavior
+
+From a visitor’s perspective:
+
+- The form looks and behaves like other WPForms forms on your site
+- Fields are familiar: contact details, message box, possibly a vehicle selector or trade-in details
+- On submit, they see:
+  - An inline success message, or
+  - A redirect to a thank-you or next-step page
+- They never see ADF payloads, routing details, or audit entries
+
+You control the copy, field labels, required fields, and styling using WPForms and your theme.
+
+### System behavior behind the scenes
+
+Behind the scenes, when the same form is configured as a vehicle lead form:
+
+- SDAS recognizes the submission as a **vehicle lead**
+- Field mappings feed a **structured internal lead model**
+- Server-side logic composes an **ADF-style payload** suitable for downstream CRM or integration plugins
+- A **lead audit trail** captures when the lead arrived, what form it used, and how SDAS interpreted it
+
+Other SDAS plugins, such as CRM connectors or tracking components, can then react to that standardized lead data.
+
+## How it interacts with other plugins
+
+SDAS Forms Extension acts as the bridge between visitor-facing forms and back-end lead workflows managed by other SDAS plugins.
+
+### Lead storage and `sdas_lead_submitted`
+
+When a form submission qualifies as a vehicle lead, SDAS Forms Extension:
+
+- Writes a structured lead record into the `wp_sdas_leads` table
+- Fires the `sdas_lead_submitted` action so other plugins can react to the new lead
+
+A simplified pattern for that action looks like this:
+
+```php
+<?php
+/**
+ * After inserting a lead into wp_sdas_leads.
+ */
+do_action(
+    'sdas_lead_submitted',
+    $lead_id,   // Primary key from wp_sdas_leads
+    $lead_data  // Structured lead array used for ADF and integrations
+);
+```
+
+This event is purely server-side; visitors do not see any additional UI or delays beyond your normal form confirmation.
+
+### CRM Connector
+
+The **SDAS CRM Connector** plugin listens for `sdas_lead_submitted` and queues the lead for CRM delivery.
+
+```php
+<?php
+// Inside SDAS CRM Connector (simplified)
+add_action(
+    'sdas_lead_submitted',
+    function( $lead_id, $lead_data ) {
+        // Queue lead for CRM sync using the structured lead payload.
+        sdas_crm_queue_lead_sync( $lead_id, $lead_data );
+    },
+    10,
+    2
+);
+```
+
+From a front-end standpoint, the CRM sync is invisible and asynchronous. The visitor still sees your standard WPForms confirmation, while CRM Connector handles outbound delivery in the background.
+
+### Tracking Hub and attribution
+
+When you also run **SDAS Tracking Hub**, that plugin can:
+
+- Associate `sdas_lead_submitted` events with tracked sessions
+- Use click IDs or UTM parameters that SDAS captured earlier in the visit
+- Attribute each `wp_sdas_leads` record to campaigns and channels
+
+This attribution work happens server-side using the lead data and any stored tracking metadata. You do not need to add extra tracking markup to the form itself beyond what Tracking Hub or SDAS Core already manage.
+
+## Outputs: ADF payloads and audit trails
+
+SDAS Forms Extension concentrates on creating reliable outputs that other systems can trust. These are not front-end visible, but they matter for integration and operations.
+
+### ADF-style payload generation
+
+When you map fields and mark a form as a vehicle lead form:
+
+- SDAS uses the form submission and context (such as associated vehicle) to assemble an **ADF-style representation** of the lead
+- This ADF payload is built **server-side**; visitors never see it in the browser
+- Other SDAS plugins (for example, the CRM connector) can consume this payload to send leads to external systems
+
+You do not need to handle any of this in template code. The front-end form remains a standard WPForms embed.
+
+### Lead audit trails
+
+Every accepted vehicle lead contributes to an **audit trail**:
+
+- Admins can see how a lead entered the system and which form created it
+- Mappings, routing decisions, and downstream actions are traceable
+- Front-end changes (for example, adding or removing fields) can be evaluated by looking at how leads changed over time
+
+Audit trails help operations and support teams diagnose issues (for example, missing contact data or misrouted leads) without changing anything on the public site.
+
+## Where to go next
+
+Use the front-end guide here as a complement to the deeper, developer-focused plugin docs.
+
+<Columns cols={2}>
+
+<Card
+  title="SDAS Forms Extension developer details"
+  href="/plugins/sdas-forms-extension"
+  icon="code"
+  cta="Open developer docs"
+  horizontal="true"
+>
+
+See configuration options, hooks, and deeper integration patterns for SDAS Forms Extension.
+
+</Card>
+
+<Card
+  title="System overview"
+  href="/architecture/sdas-system-overview"
+  icon="layout-dashboard"
+  cta="View SDAS architecture"
+  horizontal="true"
+>
+
+Understand how SDAS Core, Forms Extension, and other plugins work together across your WordPress site.
+
+</Card>
+
+</Columns>

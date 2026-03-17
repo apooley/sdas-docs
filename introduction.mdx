@@ -1,0 +1,134 @@
+---
+title: Introduction
+description: Understand how SDAS is structured in this WordPress repository, the core MU-plugin and plugins it includes, and where to start configuration.
+---
+
+## What SDAS includes in this repository
+
+SDAS in this repository is implemented entirely as WordPress code under `wp-content`, using one must-use core plugin and several standard plugins.
+
+- **MU-plugin core**: `wp-content/mu-plugins/sdas-core` (loaded via `wp-content/mu-plugins/sdas-core-loader.php`).
+- **Feature plugins**: multiple SDAS plugins under `wp-content/plugins/` that handle inventory, forms, CRM sync, tracking, OpenAI features, and dealership content.
+
+This layout lets you treat SDAS as a first-class part of your WordPress stack while keeping feature areas modular and deployable per site.
+
+<Callout kind="info">
+
+These docs assume you are comfortable with standard WordPress operations: installing plugins, deploying code to `wp-content`, and working in the admin dashboard with administrator access.
+
+</Callout>
+
+## High-level components
+
+SDAS is split into one shared core and a set of feature plugins that build on that core.
+
+### SDAS Core (MU-plugin)
+
+The MU-plugin `sdas-core` provides shared infrastructure and utilities used by all other SDAS plugins:
+
+- Central logging and error handling
+- Secure token storage and sensitive config helpers
+- Database index tooling
+- OpenAI client integration
+- Input validation and security headers
+- Health monitoring and usage tracking
+- Shared SDAS admin menus and base settings pages
+
+Because `sdas-core` loads as a must-use plugin, it is always active and available before any SDAS feature plugin initializes.
+
+### Feature plugins under wp-content/plugins
+
+All functional SDAS features live as conventional plugins:
+
+- **`sdas-inventory`**: Vehicle inventory custom post type, shortcodes/templates, awards scraping, and OpenAI-powered description generation.
+- **`sdas-forms-extension`**: WPForms extensions for vehicle-related leads, including ADF payload generation and lead audit trails.
+- **`sdas-crm-connector`**: Lead and vehicle data sync to CRMs (Dynamics, HubSpot, Salesforce, and generic REST) with queuing and retry behavior.
+- **`sdas-csv-importer`**: CSV-based vehicle import pipeline with background processing and image re-processing.
+- **`sdas-vehicle-filters`**: AJAX filter framework for browsing and narrowing vehicle inventory.
+- **`sdas-tracking-hub`**: Server-side conversion and event tracking to GA4, Google Ads, and Meta with queues and retries.
+- **`sdas-openai-pages`**: Landing page generation using OpenAI, backed by the `SDAS_LANDING_PAGE_POST_TYPE` custom post type.
+- **`sdas-custom-breakdance-elements`**: Custom Breakdance builder elements for vehicle-focused UI.
+- **`sdas-dealership-content`**: Team member and job listing content types and templates.
+- **`sdas-nocodebackend-sync`**: Lead and vehicle snapshot syncing to a NoCodeBackend API.
+
+You activate and combine these plugins per site, depending on whether you only need inventory, full CRM connectivity, tracking, or all of the above.
+
+## Where configuration lives
+
+Configuration is intentionally split between the WordPress admin and environment-level constants to fit both dealership ops teams and developers.
+
+### Admin settings under SDAS menus
+
+Most day-to-day configuration for dealership teams lives in the WordPress admin:
+
+- Inventory settings, display options, and OpenAI description behavior
+- Form and lead handling rules
+- CRM destinations and mapping options
+- Tracking destinations and event settings
+- Landing page generation settings and content defaults
+
+These settings typically appear under shared **SDAS** menus and submenus in the WordPress admin, registered by `sdas-core` and extended by each feature plugin.
+
+### wp-config and environment-level constants
+
+Sensitive values and environment-specific behavior usually belong in `wp-config.php` or your deployment environment:
+
+- API keys and secrets for OpenAI, CRMs, analytics, and NoCodeBackend
+- Environment toggles for debug vs production behavior
+- Performance-related switches or limits that should not be editable from the UI
+
+Treat these as part of your infrastructure configuration, version-controlled alongside the SDAS codebase or injected via environment variables.
+
+## Where to start
+
+Use these next steps to get a WordPress site running SDAS in a controlled way.
+
+<Columns cols={3}>
+
+<Card
+  title="Installation"
+  href="/quickstart"
+  icon="rocket"
+  cta="Set up SDAS"
+/>
+
+<Card
+  title="System overview"
+  href="/components"
+  icon="bar-chart"
+  cta="See moving parts"
+/>
+
+<Card
+  title="SDAS Core (MU-plugin)"
+  href="/components/code"
+  icon="settings"
+  cta="Understand the foundation"
+/>
+
+</Columns>
+
+<Columns cols={3}>
+
+<Card
+  title="Inventory and leads"
+  href="/components/cards"
+  icon="database"
+  cta="Work with vehicles"
+/>
+
+<Card
+  title="Tracking and analytics"
+  href="/components/code"
+  icon="monitor"
+  cta="Wire up tracking"
+/>
+
+<Card
+  title="Help and troubleshooting"
+  href="/help-center"
+  icon="help-circle"
+  cta="Get unstuck"
+/>
+
+</Columns>

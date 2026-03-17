@@ -1,0 +1,324 @@
+---
+title: SDAS Core front end guide
+description: Understand how the SDAS Core MU-plugin affects your public site, what visitors experience, and what front-end implementers should check day to day.
+---
+
+## What SDAS Core changes for the public site
+
+SDAS Core runs as a must-use (MU) plugin and provides shared infrastructure for all SDAS feature plugins, including inventory, filters, forms, CRM, imports, and tracking.
+
+From a front-end perspective, SDAS Core does not add its own widgets or templates. Instead, it makes SDAS-powered pages more stable, safer, and easier to operate by centralizing error handling, security headers, health checks, and shared admin UX that other plugins build on.
+
+<Callout kind="info">
+
+### What this guide covers
+
+- Focuses on **outcomes** you and your visitors see, not PHP-level APIs.
+- Applies to any SDAS site where SDAS Core is installed as a **must-use plugin**.
+- Complements the SDAS Core developer reference, not a replacement.
+
+If you need internal hooks, classes, or option names, use the developer-focused reference at [SDAS Core (MU-plugin)](/mu-plugins/sdas-core).
+
+</Callout>
+
+## Visitor and site-builder impact at a glance
+
+Use these views to understand where SDAS Core shows up in daily work.
+
+<Tabs>
+
+<Tab title="What visitors notice" icon="monitor">
+
+SDAS Core supports a smoother, more trustworthy experience on the public site:
+
+- **Fewer white screens and hard failures**  
+  Global error handling and shutdown handling reduce the chance that a single SDAS feature error takes down an entire page. Visitors are more likely to see a working page instead of a fatal error.
+
+- **Consistent performance during spikes**  
+  Centralized health monitoring and usage tracking give developers signals when database connectivity, queues, or external APIs are unhealthy. When teams respond to those signals, visitors experience fewer slow or half-working pages.
+
+- **Better protection in modern browsers**  
+  Shared HTTP security headers (including CSP, HSTS, and frame options) protect against common attack vectors and clickjacking. Visitors get a safer experience without you having to configure headers on each plugin or theme.
+
+- **More reliable integrations and forms**  
+  When SDAS feature plugins call external APIs via the shared OpenAI client or other HTTP clients, SDAS Core coordinates error handling and token storage. Failed calls are more likely to degrade gracefully instead of breaking entire flows.
+
+</Tab>
+
+<Tab title="What site builders do" icon="settings">
+
+Day to day, you work mainly in WordPress admin and on front-end templates that rely on SDAS feature plugins. SDAS Core shapes that work in these ways:
+
+- **Use shared SDAS admin UX**  
+  SDAS Core provides the main SDAS menus, dashboard-style pages, settings infrastructure, quick actions, and index administration screens that inventory, forms, filters, tracking, and other plugins plug into. You manage **most SDAS settings and tools in one place**, instead of hunting through multiple submenus.
+
+- **Rely on consistent behavior across SDAS plugins**  
+  Input validation, error handling, and logging live in Core, so SDAS plugins behave more consistently. For example, if a filter option or form setting has invalid input, you should see a similar validation pattern across SDAS tools.
+
+- **Trust centralized security and connectivity**  
+  You do not configure CSP or HSTS per plugin, and you do not manage raw API tokens directly in front-end templates. SDAS Core abstracts token storage and security headers so feature plugins can focus on rendering and front-end behavior.
+
+- **Use Core-powered features via SDAS plugins**  
+  As you configure Inventory, Vehicle Filters, Forms Extension, CRM Connector, CSV Importer, or Tracking Hub, many of their advanced capabilities (logging, health checks, usage tracking) depend on SDAS Core being installed and healthy.
+
+</Tab>
+
+<Tab title="When to ask a developer" icon="help-circle">
+
+Loop in a developer or SDAS implementer with deeper WordPress access when:
+
+- **You see unexplained SDAS admin errors**  
+  If SDAS dashboards, settings pages, or quick actions show persistent errors unrelated to your recent changes, a developer should check Core logs and health monitoring.
+
+- **Pages partially break after theme or plugin changes**  
+  If inventory grids, filters, forms, or tracking stop working after a theme update, developers may need to inspect how Core's input validator and security headers interact with new scripts or markup.
+
+- **You suspect API or token issues**  
+  If external integrations (for example, anything using the shared OpenAI API client or other external services) behave inconsistently, a developer should confirm that secure token storage and related configuration in Core are correct.
+
+- **You see repeated admin notices about SDAS Core**  
+  If WordPress shows an SDAS Core missing or loader-related notice (see below), you need someone with file-system and deployment access to fix the MU-plugin installation before you continue front-end work.
+
+</Tab>
+
+</Tabs>
+
+## MU-plugin loader: where SDAS Core lives
+
+SDAS Core runs as a must-use plugin and loads very early in WordPress. Its loader pattern has two specific files:
+
+- `wp-content/mu-plugins/sdas-core-loader.php`  
+- `wp-content/mu-plugins/sdas-core/sdas-core.php`
+
+The loader file at `wp-content/mu-plugins/sdas-core-loader.php` checks the WordPress constant `ABSPATH` and then requires `wp-content/mu-plugins/sdas-core/sdas-core.php`.
+
+If the `wp-content/mu-plugins/sdas-core/` directory (and therefore `sdas-core.php`) is missing, the loader registers an `admin_notices` callback that shows an error stating that `wp-content/mu-plugins/sdas-core/` could not be found. You see this as a visible notice at the top of WordPress admin screens.
+
+From a front-end perspective, that notice is a strong signal that SDAS-powered features may not work correctly until the MU-plugin directory is restored.
+
+<Callout kind="info">
+
+If you see the missing directory notice and you do not manage deployments, stop major front-end changes and ask someone with server access to fix the MU-plugin installation first.
+
+</Callout>
+
+## How backend features show up in your day-to-day work
+
+Even though SDAS Core lives in PHP, its behavior affects where and how you work as a site builder.
+
+### Global error handling and logging
+
+SDAS Core defines a centralized error handler, log manager abstraction, and shutdown handler.
+
+In practice, this means:
+
+- SDAS feature plugins (inventory, filters, forms, CRM, CSV, tracking) can fail **more gracefully**, with errors logged centrally instead of crashing public pages.
+- Support and development teams can read logs from one place and fix issues without asking you to reproduce every step from the front end.
+- You can treat intermittent errors you see in admin or front-end SDAS screens as **signals**, not mysteries—someone can actually investigate them.
+
+When pages behave strangely but keep loading, capture what you see (URL, time, what you clicked) and share it with a developer. SDAS Core's log manager gives them the detail you cannot see from the browser.
+
+### Shared OpenAI API client and secure token storage
+
+SDAS Core exposes a shared OpenAI API client and a secure token storage abstraction so SDAS feature plugins can call external AI or API services without exposing secrets.
+
+Practically, this means:
+
+- SDAS plugins that rely on AI or external APIs do not ask you to paste API keys into templates or theme files.
+- Tokens remain in secure storage and appear only as **references**, reducing the risk of accidental leaks via front-end code or database exports.
+- When AI-powered or external features misbehave, the likely fix is in **Core configuration or infrastructure**, not in your theme.
+
+If you suspect token or AI-related issues (for example, SDAS features that previously used AI assistance stop responding), capture the symptoms and ask a developer to verify token storage and the shared OpenAI client configuration in SDAS Core.
+
+### Input validation and normalized values
+
+SDAS Core includes an input validator that uses schemas and normalized values, which SDAS feature plugins can rely on when accepting configuration or request data.
+
+For you, this shows up as:
+
+- **Consistent validation messages** on SDAS settings and admin screens, especially when entering configuration for inventory, forms, filters, or integrations.
+- Fewer subtle bugs from "almost valid" data; inputs are normalized before plugins act on them, so displays and behavior are more predictable.
+- A lower chance that malformed user input on public forms or query parameters takes down a page that uses SDAS features.
+
+When configuration fields reject values or show validation messages, treat them as coming from a central system. If you see inconsistent validation across SDAS tools, that is a good reason to have someone review Core's validator usage in those plugins.
+
+### Security headers and public site safety
+
+SDAS Core centralizes HTTP security headers such as Content Security Policy (CSP), HTTP Strict Transport Security (HSTS), and frame options.
+
+This affects front-end work in several ways:
+
+- New scripts, iframes, or third-party widgets you add in themes or page builders may be **blocked** by CSP if they are not allowed.
+- Browsers may refuse to frame your site or specific pages, based on frame options defined centrally through Core.
+- Visitors benefit from consistent security posture across all SDAS-powered pages, without you adjusting headers manually.
+
+If you add new third-party scripts and notice that they do not run, or the browser console shows CSP errors, you likely need a developer to review and update the security header configuration that SDAS Core manages.
+
+### Health monitoring and usage tracking
+
+SDAS Core monitors key aspects such as:
+
+- Database connectivity
+- Queue state
+- External API reachability
+- Usage metrics for SDAS features
+
+These capabilities do not show directly on the public site, but they power:
+
+- Health indicators and dashboards in SDAS admin screens.
+- Alerts or workflows used by your operations team.
+- Data-driven decisions about capacity and plugin behavior.
+
+When you see SDAS admin screens indicating degraded health (for example, warnings about database or external API connectivity), treat them as early warning signs that public pages may be affected soon and escalate accordingly.
+
+### Shared admin UX for SDAS tools
+
+SDAS Core provides:
+
+- SDAS top-level menus and navigation in WordPress admin.
+- Dashboard-style overviews and index administration screens.
+- Shared settings infrastructure and quick actions.
+
+Front-end plugins such as Inventory (front end), Vehicle Filters (front end), Forms Extension (front end), CRM Connector (front end), CSV Importer (front end), and Tracking Hub (front end) rely on this shared UX for their configuration and data views.
+
+Expect that:
+
+- You work mostly in **SDAS-branded sections** of WordPress admin, rather than in separate plugin menus.
+- Many front-end behaviors (layout, filters, forms, tracking) are controlled through configuration screens that sit on top of SDAS Core's admin foundation.
+
+If those SDAS admin pages are missing or behave inconsistently, it is usually a Core-level issue, not a theme problem.
+
+## Checklist: confirm SDAS Core is healthy
+
+Use this checklist when you inherit a site or before you roll out front-end changes that depend heavily on SDAS features.
+
+<Steps>
+
+<Step title="Confirm SDAS Core files exist" icon="folder">
+
+1. Log in to WordPress admin with an account that can see **Tools** or **Settings** level items.
+2. Ask someone with server or deployment access to verify that these files exist on disk:
+   - `wp-content/mu-plugins/sdas-core-loader.php`
+   - `wp-content/mu-plugins/sdas-core/sdas-core.php`
+
+Success signal: the person with server access confirms both files exist and are readable. If either is missing, fix the MU-plugin deployment before continuing.
+
+</Step>
+
+<Step title="Check for SDAS Core admin notices" icon="alert-triangle">
+
+1. Browse to any standard WordPress admin page, such as **Dashboard** or **Plugins**.
+2. Look for a visible error notice stating that `wp-content/mu-plugins/sdas-core/` could not be found.
+
+- If you **see** this notice, SDAS Core is not loading correctly. Pause front-end work and ask a developer to restore the `wp-content/mu-plugins/sdas-core/` directory.
+- If you **do not see** this notice, proceed to confirm SDAS admin UX is present.
+
+Success signal: no Core-missing notice appears across admin pages.
+
+</Step>
+
+<Step title="Verify SDAS admin UX is available" icon="settings">
+
+1. In WordPress admin, look for SDAS-related top-level menus or dashboards (for example, the main SDAS area where inventory, filters, forms, or tracking are configured).
+2. Open several SDAS screens:
+   - A dashboard or overview page
+   - A settings screen
+   - An index or listing screen powered by SDAS
+
+3. Confirm that:
+   - Pages load without fatal errors or blank screens.
+   - Navigation between SDAS sections feels consistent.
+   - Settings pages use the same general layout and validation patterns.
+
+Success signal: SDAS menus and dashboards are present, screens load quickly, and you do not see repeated generic WordPress errors.
+
+</Step>
+
+<Step title="Spot-check key SDAS front-end features" icon="monitor">
+
+1. Visit a public page that relies heavily on SDAS, such as:
+   - A vehicle inventory listing with filters
+   - A form powered by SDAS Forms Extension
+   - A page that should send data to CRM or tracking
+
+2. Interact with:
+   - Filters and search controls
+   - Form submissions
+   - Any interactive widgets provided by SDAS plugins
+
+3. Confirm that:
+   - Pages render fully without partial content or obvious broken areas.
+   - Interactions trigger visible results (filtered lists, confirmation messages, redirects) as expected.
+
+Success signal: Core SDAS-powered flows behave as they did previously, or as documented for that site, with no new errors surfaced to visitors.
+
+</Step>
+
+<Step title="Review health and escalation paths" icon="info">
+
+1. From SDAS admin screens, identify any health or usage indicators that SDAS Core surfaces (for example, warnings about database or external API availability).
+2. Capture:
+   - Any warnings or degraded health messages
+   - The approximate time and pages affected
+3. Share these details with a developer or operations contact so they can:
+   - Check centralized logs from SDAS Core
+   - Review health monitoring and usage tracking data
+
+Success signal: you know who to contact and what information to provide when SDAS features misbehave, and developers confirm that Core health looks normal.
+
+</Step>
+
+</Steps>
+
+## When SDAS Core is missing or broken
+
+When SDAS Core is not installed or fails to load:
+
+- The MU-plugin loader file either does not exist or cannot require `wp-content/mu-plugins/sdas-core/sdas-core.php`.
+- WordPress admin shows an `admin_notices` error stating that `wp-content/mu-plugins/sdas-core/` could not be found.
+- SDAS feature plugins may:
+  - Fail to initialize correctly.
+  - Lose access to centralized error handling and logging.
+  - Render partial or broken front-end output.
+  - Miss critical security headers, token storage, validation, or health monitoring.
+
+As a site builder, your best response is:
+
+1. Avoid large structural or theme changes while Core is unhealthy.
+2. Collect screenshots and URLs showing the notice or broken behavior.
+3. Ask a developer or DevOps contact to:
+   - Restore or repair the MU-plugin files.
+   - Verify that SDAS Core loads without errors.
+   - Confirm that dependent SDAS feature plugins now initialize correctly.
+
+## Related references
+
+Use these pages when you need deeper technical detail or installation-level guidance.
+
+<Columns cols={2}>
+
+<Card
+  title="SDAS Core (MU-plugin) developer reference"
+  href="/mu-plugins/sdas-core"
+  icon="shield"
+  cta="Open reference"
+  horizontal="true"
+>
+
+Technical details about the SDAS Core MU-plugin, including loader behavior, error handling, logging, security headers, health monitoring, and shared admin infrastructure.
+
+</Card>
+
+<Card
+  title="Install and activate SDAS"
+  href="/setup/installation"
+  icon="rocket"
+  cta="View installation steps"
+  horizontal="true"
+>
+
+Step-by-step instructions for installing SDAS as an MU-plugin, including where to place files and how to verify that Core and feature plugins are active.
+
+</Card>
+
+</Columns>

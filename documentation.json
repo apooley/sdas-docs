@@ -1,5 +1,5 @@
 {
-  "name": "Starter Kit",
+  "name": "SDAS",
   "colors": {
     "light": {
       "brand": "#F97316"
@@ -15,7 +15,7 @@
         "icon": "book",
         "groups": [
           {
-            "group": "Start Here",
+            "group": "Start here",
             "icon": "rocket",
             "pages": [
               {
@@ -24,122 +24,104 @@
                 "icon": "home"
               },
               {
-                "title": "Quickstart",
-                "path": "quickstart",
-                "icon": "zap"
+                "title": "Install and activate",
+                "path": "setup/installation",
+                "icon": "rocket"
               },
               {
-                "title": "Components",
-                "path": "components",
-                "icon": "code"
+                "title": "System overview",
+                "path": "architecture/sdas-system-overview",
+                "icon": "layout-dashboard"
               }
             ]
           },
           {
-            "group": "Components",
-            "icon": "layers",
+            "group": "Core",
+            "icon": "shield",
             "pages": [
               {
-                "title": "Images",
-                "path": "components/images"
+                "title": "SDAS Core (dev)",
+                "path": "mu-plugins/sdas-core",
+                "icon": "shield"
               },
               {
-                "title": "Cards",
-                "path": "components/cards"
-              },
-              {
-                "title": "Code",
-                "path": "components/code",
-                "icon": "code"
-              },
-              {
-                "title": "Callouts",
-                "path": "components/callouts"
-              },
-              {
-                "title": "Steps",
-                "path": "components/steps"
-              },
-              {
-                "title": "Tabs",
-                "path": "components/tabs"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "tab": "API Reference",
-        "icon": "code",
-        "groups": [
-          {
-            "group": "Overview",
-            "icon": "file-text",
-            "pages": [
-              {
-                "title": "Authentication",
-                "path": "authentication"
+                "title": "SDAS Core (front end)",
+                "path": "mu-plugins/sdas-core-front-end",
+                "icon": "monitor"
               }
             ]
           },
           {
-            "group": "Sample Endpoints",
-            "pages": [],
-            "openapi": "api-reference/openapi.yaml"
-          }
-        ]
-      },
-      {
-        "tab": "Help Center",
-        "icon": "help-circle",
-        "pages": [
-          {
-            "title": "Help Center",
-            "path": "help-center",
-            "icon": "home"
-          },
-          {
-            "group": "FAQs",
-            "icon": "help-circle",
-            "expandable": false,
+            "group": "Developer / Plugins",
+            "icon": "plug",
             "pages": [
               {
-                "title": "Documentation Source",
-                "path": "help-center/faq/getting-started"
+                "title": "SDAS Inventory",
+                "path": "plugins/sdas-inventory",
+                "icon": "database"
+              },
+              {
+                "title": "SDAS Vehicle Filters",
+                "path": "plugins/sdas-vehicle-filters",
+                "icon": "list-filter"
+              },
+              {
+                "title": "SDAS Forms Extension",
+                "path": "plugins/sdas-forms-extension",
+                "icon": "file-text"
+              },
+              {
+                "title": "SDAS CRM Connector",
+                "path": "plugins/sdas-crm-connector",
+                "icon": "plug"
+              },
+              {
+                "title": "SDAS CSV Importer",
+                "path": "plugins/sdas-csv-importer",
+                "icon": "upload"
+              },
+              {
+                "title": "SDAS Tracking Hub",
+                "path": "plugins/sdas-tracking-hub",
+                "icon": "activity"
               }
             ]
           },
           {
-            "group": "Troubleshooting",
-            "expandable": false,
+            "group": "Front-End / Plugins",
+            "icon": "monitor",
             "pages": [
               {
-                "title": "Page Missing in Sidebar",
-                "path": "help-center/troubleshooting/install-error"
-              }
-            ]
-          },
-          {
-            "group": "Guides",
-            "icon": "book-open",
-            "expandable": false,
-            "pages": [
+                "title": "Inventory (front end)",
+                "path": "plugins/sdas-inventory-front-end",
+                "icon": "layout-grid"
+              },
               {
-                "title": "Create Your First Page",
-                "path": "help-center/guides/setup-project"
+                "title": "Vehicle Filters (front end)",
+                "path": "plugins/sdas-vehicle-filters-front-end",
+                "icon": "list-filter"
+              },
+              {
+                "title": "Forms Extension (front end)",
+                "path": "plugins/sdas-forms-extension-front-end",
+                "icon": "file-text"
+              },
+              {
+                "title": "CRM Connector (front end)",
+                "path": "plugins/sdas-crm-connector-front-end",
+                "icon": "plug"
+              },
+              {
+                "title": "CSV Importer (front end)",
+                "path": "plugins/sdas-csv-importer-front-end",
+                "icon": "upload"
+              },
+              {
+                "title": "Tracking Hub (front end)",
+                "path": "plugins/sdas-tracking-hub-front-end",
+                "icon": "activity"
               }
             ]
-          }
-        ]
-      },
-      {
-        "tab": "Changelog",
-        "icon": "clock",
-        "pages": [
-          {
-            "title": "Changelog",
-            "path": "changelog",
-            "icon": "history"
           }
         ]
       }
