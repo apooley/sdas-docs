@@ -1,166 +1,103 @@
 ---
 title: SDAS CRM Connector front-end guide
-description: Understand how the SDAS CRM Connector affects site behavior, what visitors see, and what front-end teams must coordinate for reliable lead delivery.
+description: Help WordPress admins shape forms, confirmations, and testing so the SDAS CRM Connector can deliver leads reliably into connected CRMs.
 ---
 
-## What the SDAS CRM Connector does
+## Key idea: server-side only, but admin-dependent
 
-`sdas-crm-connector` syncs lead and vehicle data into CRMs such as Dynamics, HubSpot, Salesforce, and generic REST targets, with queuing and retry behavior to handle downstream issues.
-
-<Callout kind="info">
-
-The SDAS CRM Connector runs behind the scenes. It does not render form fields, buttons, or widgets by itself. It controls what happens to lead data after submission, not how the form looks or behaves in the browser.
-
-</Callout>
-
-Front-end teams still play an important role: you decide how visitors interact with forms and what expectations you set about follow-up, while the connector ensures those submissions are delivered into CRM systems.
-
-## Front-end surface area
-
-From a theme or page-builder perspective, the CRM Connector has no direct surface area on the public site.
+SDAS CRM Connector runs entirely in the background. It does not add shortcodes, blocks, widgets, or visible form elements to your site.
 
 <Callout kind="info">
 
-The CRM Connector is admin and server-side only. It provides **no shortcodes**, **no blocks**, **no widgets**, and **no front-end JavaScript or CSS** for visitors. All of its logic runs in WordPress hooks and background queues after the site accepts a submission.
+Treat SDAS CRM Connector as a **delivery engine**: once your site accepts a lead, the connector works behind the scenes to send that data into connected CRMs using queues and retries. Your job as an admin is to make sure forms collect the right information, thank-you messages set the right expectations, and test leads flow end-to-end.
 
 </Callout>
 
-Use your existing form plugins, SDAS front-end components, or custom templates for anything visitors see. Treat the connector as an integration layer that receives events from those flows and pushes data into CRM targets.
+You keep full control over how forms look, where they appear, and what visitors read when they submit. The connector depends on those flows to capture complete leads and push them to your CRM reliably.
 
-## What triggers CRM sync
+---
 
-The connector listens for specific WordPress actions to decide when to queue CRM sync work. These actions map to concrete user-facing moments on the site, even though visitors never see the hooks directly.
+## What visitors see on your site
 
-### `sdas_lead_submitted`
+Visitors interact only with your website forms and confirmation messages. They do not see CRM names, sync queues, or background jobs.
 
-This action fires when a lead is created and accepted by the site.
+### Forms and fields
 
-Typical front-end flows that eventually fire `sdas_lead_submitted`:
+From a visitor's perspective:
 
-- A visitor submits a **contact or enquiry form** for a vehicle or department.
-- A visitor books a **test drive**, **appointment**, or **trade-in** evaluation.
-- A marketing form (for example, **newsletter opt-in**) creates a new lead record.
+- Forms appear in your **pages, posts, or templates**, using your usual tools (for example, SDAS Forms Extension, WPForms, block-based forms, or custom forms).
+- Fields ask for **contact details** (name, email, phone) and **context** (for example, vehicle of interest, department, preferred date).
+- Validation and error messages come from your **form plugin or theme**, not from the CRM.
 
-Once this action runs, the connector:
+Your forms should feel like any normal enquiry or booking form. The connector activates only after the site accepts a valid submission.
 
-- Queues a job to send the lead into configured CRM destinations.
-- Uses background processing (Action Scheduler) to retry if the CRM is temporarily unavailable.
+### Confirmation and follow-up messaging
 
-From the visitor's point of view, this still looks like a normal successful form submission.
+After a successful submission, visitors should see clear confirmation that **your site** received their details, without mentioning technical steps like “sending to CRM.”
 
-### `sdas_vehicle_description_generated`
+Good visitor experiences:
 
-This action fires when the system generates or updates a structured description for a vehicle.
+- A clear thank-you page or inline success message.
+- A short explanation of **what happens next** and roughly **when** to expect a response.
+- Optional follow-up details, such as opening hours or phone numbers.
 
-On the front end, this usually corresponds to:
+Avoid promising anything that depends on instant CRM processing, because that part runs asynchronously in the background.
 
-- A vehicle being **created or updated** in SDAS Inventory.
-- A change that affects what visitors see on **vehicle detail pages** (for example, updated trim, pricing notes, or marketing copy).
+<Callout kind="info">
 
-When `sdas_vehicle_description_generated` runs, the connector:
+The connector uses **background queues and retries**, so CRM delivery does not always happen at the exact second of form submission. Design your copy around **"we received your details"** and **"our team will contact you"**, not around real-time CRM updates.
 
-- Queues a sync so CRM systems receive up-to-date vehicle metadata.
-- Keeps CRM records aligned with what visitors see in listings and detail pages.
+</Callout>
 
-### `sdas_vehicle_sold`
+---
 
-This action fires when a vehicle is marked as sold in SDAS systems.
+## What admins control in WordPress
 
-In user-facing terms, this often lines up with:
+As a WordPress admin or site builder, you control everything visitors see and how leads get created inside WordPress.
 
-- A vehicle disappearing from **search results** or showing as **sold** on detail pages.
-- A sales workflow in the back office that finalizes the deal.
+### 1. Which forms feed the CRM
 
-When `sdas_vehicle_sold` runs, the connector:
+Decide which forms on your site should create CRM records, for example:
 
-- Queues an update so CRM records reflect the sale.
-- Helps sales and marketing teams work from accurate inventory and deal status, without any extra front-end calls.
+- Vehicle enquiry or “book a test drive” forms.
+- Trade-in valuation or finance request forms.
+- General “contact us” or newsletter sign-up forms.
 
-Admin users can also trigger manual or bulk resync actions, but those happen in `/wp-admin` and do not change front-end flows.
+Coordinate with your operations or marketing team so they know **which lead flows exist** and where they appear on the site. They will configure the CRM Connector to listen for those leads and sync them onward.
 
-## How it interacts with other layers
+### 2. Field completeness and quality
 
-The CRM Connector is one layer in the broader SDAS stack. Front-end work typically interacts with SDAS Forms Extension and Inventory, which in turn raise events the connector consumes.
+The connector can only deliver the data your forms collect. Make sure CRM-bound forms:
 
-### SDAS Forms Extension and lead creation
+- Always include **contact identifiers**:
+  - Full name, or at least first name and last name.
+  - Email and/or phone number for follow-up.
+- Include relevant **context fields**:
+  - Vehicle of interest, department, enquiry type, preferred time.
+  - Any information your team needs to respond effectively.
+- Use field labels and options that **match how your team works** (even if the internal CRM field names are different).
 
-On the visitor side:
+If you change form fields later (add/remove options, rename labels, add new fields), tell the person who manages CRM Connector so they can keep mappings up to date.
 
-- SDAS Forms Extension (or your chosen form system) renders the **form UI**.
-- The visitor fills out fields and submits, and the site validates and saves the lead.
-- When the lead is successfully stored, SDAS Forms Extension fires `sdas_lead_submitted`.
+### 3. Thank-you copy and automated replies
 
-At that moment, the CRM Connector:
+You manage all visitor-facing copy on:
 
-- Listens for `sdas_lead_submitted` and **queues a background task** to sync the lead into configured CRMs.
-- Does not block the HTTP response to the visitor while it waits for CRM responses.
+- Thank-you pages.
+- Inline success messages inside forms.
+- Automated confirmation emails from your form system.
 
-Design your UI around the success of the **site-level submission**, not around direct confirmation from the CRM.
+Use these messages to:
 
-### Background queues, retries, and visitor messaging
+- Confirm that **the site received the enquiry**.
+- Set realistic expectations for **response time**.
+- Avoid naming the CRM or promising instant appearance in CRM dashboards.
 
-Because the connector uses background queues and retries:
+#### Editable confirmation copy templates
 
-- CRM sync may complete **seconds or minutes after** the visitor submits.
-- Retries can continue if the CRM is slow or temporarily offline.
-- Operations teams can resync or inspect queues in the admin without involving front-end changes.
+Use or adapt these templates in your WordPress pages, form confirmations, or email notifications. Adjust tone to match your brand, but keep the intent similar.
 
-Front-end guidelines:
-
-- Confirm that the **site received the submission** (for example, thank-you page, inline success state).
-- Avoid phrasing that implies **instant CRM updates** (for example, "Your record is now live in Salesforce").
-- If operations report delays or maintenance, adjust copy to set expectations about **response time**, not about CRM status.
-
-For vehicle-related flows, treat `sdas_vehicle_description_generated` and `sdas_vehicle_sold` the same way: they are system events that keep CRM data aligned with what visitors see, but they do not change how you render pages or handle submissions.
-
-## Where the connector is configured
-
-Admins configure CRM destinations, credentials, and mapping behavior in the SDAS CRM Connector plugin settings at `/wp-admin` (under the SDAS plugins area).
-
-Front-end developers and site builders typically do not change these settings directly, but you should know that:
-
-- The connector expects certain contact and vehicle fields to be present in submissions.
-- Admins can add or change CRM destinations without changing the site theme.
-- Queuing and retry behavior is handled server-side, independent of the front-end.
-
-Coordinate with your admins when you introduce new lead flows or change form structures so the connector continues to receive the fields it needs.
-
-## Front-end perspective
-
-Use these tabs to focus on what matters for visitors, for your build work, and for ongoing operations.
-
-<Tabs>
-
-<Tab title="Visitor impact" icon="users">
-
-Visitors interact with your forms and thank-you pages the same way they would on any site. The main difference with the SDAS CRM Connector is what happens to their data once they submit.
-
-### What visitors see (and do not see)
-
-Visitors:
-
-- See **your form UI**, built with your form plugin, theme, or custom components.
-- See **your validation messages**, loading states, and thank-you pages.
-- Do not see CRM-specific details, queue states, or retry attempts.
-- Do not get real-time confirmation from the CRM; confirmation comes from your site.
-
-The connector runs after the form submission completes. From the browser's point of view, the submission is just a normal POST to your site.
-
-### Setting the right expectations
-
-Because the connector includes queuing and retry behavior, CRM delivery might not be instantaneous in every case. Design your front-end to:
-
-- Confirm that the **form was received**, not that it was saved inside a CRM.
-- Use phrases like **"We received your information"** or **"Our team will contact you soon"**, not **"Your data is now in our CRM"**.
-- Avoid showing CRM-specific promises (for example, "check your CRM task list in 2 minutes") that depend on immediate downstream processing.
-
-If CRM delivery is temporarily delayed, users should still feel confident that their lead was captured correctly by the site.
-
-### Copy/paste: visitor confirmation copy
-
-Use this ready-made copy to keep visitor messaging aligned with background CRM delivery. Adjust tone to match your brand, but keep the intent and promises the same.
-
-<CodeGroup tabs="Thank-you page,Inline success,Internal-only note">
+<CodeGroup tabs="Thank-you page,Inline success,Email confirmation">
 
 ```text
 Thank-you page body (generic)
@@ -179,122 +116,190 @@ Thank you, we have received your details. Our team will be in touch soon.
 ```
 
 ```text
-Internal-only ops note (staging / QA)
+Email confirmation (optional)
 
-Internal note (not visible to visitors):
+Subject: We have received your enquiry
 
-The site has accepted this submission and queued it for processing. Background jobs will attempt to deliver the lead to connected CRM systems shortly.
+Thank you for contacting us.
 
-If you are testing in staging or QA, verify both:
-- The form submission shows as successful on the site.
-- The corresponding record appears in the CRM within the expected processing window.
+We have received your details and shared them with our team. A member of our staff will review your enquiry and respond as soon as possible. If you contacted us about a specific vehicle, we will confirm its latest availability before we reply.
 
-This system uses background queues and retries, so CRM records may not update instantly even when the site confirms receipt.
+If you did not submit this enquiry, you can ignore this message. No further action is required.
 ```
 
 </CodeGroup>
 
-</Tab>
+---
 
-<Tab title="Site-builder checklist" icon="code">
+## How to coordinate with CRM configuration
 
-This checklist covers the coordination points between your front-end implementation and the SDAS CRM Connector. Work through it whenever you add or change lead forms.
+You do not need to work with code or hooks, but you should understand how your content choices connect to CRM setup in the admin.
 
-### 1. Confirm admin configuration
+### Where CRM Connector is configured
 
-Before making front-end changes, ask an admin:
+Admins configure SDAS CRM Connector under `/wp-admin` in the SDAS plugins area. There they set:
 
-- Which CRM destinations are active for this site.
-- Which forms or lead flows are expected to feed the CRM.
-- Which fields are required on their side to create or update records.
+- **Which CRMs** (for example, Dynamics, HubSpot, Salesforce, REST targets) receive leads and vehicle data.
+- **Which events** from your site trigger CRM sync (lead submissions, vehicle updates, vehicle sold).
+- **How fields map** from WordPress leads and vehicles into the CRM.
 
-This gives you a target for what your forms need to collect, without exposing CRM-specific details to visitors.
+As a site builder, you rarely change these settings yourself, but your form design must align with them.
 
-### 2. Ensure forms collect required contact info
+### What to share with the CRM admin
 
-Design forms so they always capture enough information for meaningful CRM records. At minimum:
+When you create or update forms that should feed the CRM, share with your CRM or operations owner:
 
-- Include **contact identifiers** such as name, email, and/or phone.
-- Include **context fields** that matter for follow-up (for example, vehicle interest, department, or campaign).
-- Match field purposes to what admins expect, even if the field names or IDs in your form system are different.
+- **Form locations**:
+  - Page URLs where the forms live.
+  - Which forms are new vs existing.
+- **Form system**:
+  - Whether you used SDAS Forms Extension, another plugin, or a custom form.
+- **Fields and options**:
+  - Which fields you collect (names, emails, phones, enquiry types).
+  - Any new dropdown options or checkboxes they might want to track in the CRM.
 
-<Callout kind="tip">
+This information helps them map your form fields correctly, so every new lead lands in the right place inside the CRM.
 
-If you change field labels, add new options, or remove fields, tell your admin team. They may need to update connector-side mappings to keep CRM sync accurate.
+---
+
+## Checklist: validate a new lead form end-to-end
+
+Use this checklist whenever you add a new lead form or make significant changes to an existing one that should feed the CRM.
+
+<Steps>
+
+<Step title="Open the form on the live or staging site" icon="monitor">
+
+- Navigate to the page where the form appears.
+- Confirm the form **loads correctly** and shows all the fields you expect.
+- Check that labels and help text make sense to a visitor.
+
+</Step>
+
+<Step title="Submit a realistic test lead" icon="play-circle">
+
+- Fill in the form with **realistic test data**:
+  - A test name (for example, "Test Lead SDAS").
+  - A working email address you can check.
+  - A phone number and any required context, like vehicle details.
+- Submit the form and confirm:
+  - You see the **expected success message** or thank-you page.
+  - No obvious error messages appear after submission.
+
+Success signal: the site clearly confirms that it received the enquiry.
+
+</Step>
+
+<Step title="Confirm the lead exists in WordPress" icon="database">
+
+- In `/wp-admin`, open the area where leads are stored (for example, SDAS Forms Extension leads, form plugin entries, or a custom leads list).
+- Locate your **test lead** and check:
+  - All key fields (name, email, phone, vehicle, enquiry type) are populated.
+  - The timestamp matches when you submitted the test.
+
+Success signal: the test lead appears exactly once with complete data.
+
+</Step>
+
+<Step title="Wait for the expected CRM sync window" icon="clock">
+
+- Ask your CRM or operations owner how long CRM sync normally takes (for example, within a few minutes).
+- Wait at least that long before checking the CRM.
+- Remember that queues and retries may mean the lead appears slightly later if the CRM is slow.
+
+Success signal: enough time has passed for normal processing to complete.
+
+</Step>
+
+<Step title="Confirm the record in your CRM" icon="check-circle">
+
+- With your CRM owner, search in the CRM for:
+  - The test name you used (for example, "Test Lead SDAS").
+  - Or the email address from the test submission.
+- Verify that:
+  - A new contact or lead record exists.
+  - Key fields (contact details, vehicle interest, enquiry type) match the WordPress lead.
+  - The lead appears in the **expected pipeline, list, or queue** for your team.
+
+Success signal: the test lead appears correctly in the CRM with usable data.
+
+</Step>
+
+<Step title="Adjust copy or fields if needed" icon="edit">
+
+- If the CRM owner sees missing or confusing data:
+  - Update form fields or labels on the WordPress side.
+  - Ask them to adjust mappings on the CRM Connector side.
+- If visitors need clearer expectations:
+  - Tweak thank-you messages or email confirmations based on real response times.
+- Repeat a quick test submission if you make significant changes.
+
+Success signal: everyone is confident that real visitors will be captured in WordPress and appear in the CRM with the right information.
+
+</Step>
+
+</Steps>
+
+---
+
+## Advanced (developers)
+
+Most admins do not need to work with hooks or code. This section is only for developers who want to understand when the CRM Connector runs, so they can extend or troubleshoot integrations.
+
+<Callout kind="info">
+
+If you are not writing code, you can ignore this section. The important part for admins is that **once the site accepts a lead**, the connector listens for events and queues CRM sync in the background.
 
 </Callout>
 
-### 3. Do not promise instant CRM processing
+### Key WordPress actions
 
-Update your UI copy so it aligns with asynchronous delivery and possible retries:
+Developers should know that SDAS CRM Connector listens to these internal actions:
 
-- Use **generic confirmations**: "Thanks for reaching out. We will be in touch soon."
-- Avoid strict timing: do not promise "within 5 minutes" unless you monitor that operationally.
-- Keep any CRM mentions internal; visitors should not need to know which system you use.
+- `sdas_lead_submitted` — fired when the site creates and accepts a lead record.
+- `sdas_vehicle_description_generated` — fired when SDAS Inventory updates a vehicle description that visitors see.
+- `sdas_vehicle_sold` — fired when a vehicle is marked sold in SDAS systems.
 
-### 4. Handle submission states clearly
+These actions trigger background jobs that send lead and vehicle data to configured CRM destinations using Action Scheduler or a similar queue.
 
-Your form should:
+### Example: listening for a submitted lead
 
-- Show a **clear success state** when the server accepts the submission.
-- Handle **client-side errors** (validation, network issues) with specific messages.
-- Avoid showing low-level errors that imply CRM failures or connector internals.
+Developers can attach their own logic to the same events without affecting the connector:
 
-If the site returns a success response, the connector will handle queuing and retries in the background. Do not block the UX waiting for CRM confirmation.
+<CodeGroup tabs="PHP">
 
-### 5. Coordinate when introducing new lead flows
+```php
+<?php
+// Example: run custom code when a lead is submitted.
+// The CRM Connector also listens to this action in the background.
+//
+// Action signature:
+// do_action( 'sdas_lead_submitted', $lead_id, $lead_data );
 
-When you add new lead flows, for example:
+add_action( 'sdas_lead_submitted', function ( $lead_id, $lead_data ) {
+    // Prepare a short, safe summary for logging.
+    $name  = isset( $lead_data['name'] ) ? $lead_data['name'] : '';
+    $email = isset( $lead_data['email'] ) ? $lead_data['email'] : '';
 
-- New **vehicle enquiry** forms
-- **Trade-in** or **test-drive** requests
-- **Contact us** or **newsletter** opt-ins
+    $parts = array( 'Lead submitted: ID ' . $lead_id );
 
-Share with admins:
+    if ( $name !== '' ) {
+        $parts[] = 'name ' . $name;
+    }
 
-- Which URL or page the form lives on.
-- The form system you used (for example, blocks, shortcodes, custom template).
-- The fields you collect and how they relate to existing flows.
+    if ( $email !== '' ) {
+        $parts[] = 'email ' . $email;
+    }
 
-This helps ensure the connector routes and syncs the new leads correctly.
+    error_log( implode( ' | ', $parts ) );
+}, 10, 2 );
+```
 
-</Tab>
+</CodeGroup>
 
-<Tab title="Operational notes" icon="settings">
+For full server-side configuration details, including CRM destinations and field mappings, use the main plugin reference.
 
-Operational behavior affects how you talk about the system in documentation, training, and UI copy, even though visitors never see the internals.
-
-### Queuing and retry behavior
-
-The connector uses queuing and retry logic so that:
-
-- Leads are not lost if a CRM is temporarily unavailable.
-- Delivery can happen shortly after submission, not necessarily at the exact same second.
-- Operations teams can investigate CRM connectivity without changing the theme.
-
-From a front-end standpoint, treat CRM delivery as **eventually consistent**: the site accepts submissions, then backend processes work to sync them.
-
-### What front-end teams should watch for
-
-When you roll out changes:
-
-- **Monitor form submissions** in your analytics or form system to confirm visitors complete flows as expected.
-- **Ask admins** to confirm that corresponding CRM records appear as expected for a sample of leads.
-- **Align messaging** with real operational behavior; if follow-up times change, update thank-you copy and automated responses.
-
-### Handling edge cases in copy
-
-For rare cases when operational teams detect delays, they may ask you to adjust UI or on-site messaging temporarily. Examples:
-
-- Adding a banner or note that **response times may be longer than usual**.
-- Adjusting expectations on pages that promise callbacks or appointments.
-- Updating FAQs about how quickly the team responds to enquiries.
-
-These changes stay entirely in your front-end and content; the connector continues managing delivery behind the scenes.
-
-</Tab>
-
-</Tabs>
+---
 
 ## Related documentation
 

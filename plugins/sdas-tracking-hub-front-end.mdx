@@ -1,155 +1,317 @@
 ---
-title: SDAS Tracking Hub for front-end teams
-description: Understand how front-end teams support SDAS Tracking Hub with event triggers, consent, and attribution-friendly page context while tracking runs server-side.
+title: SDAS Tracking Hub for front-end and site admins
+description: Learn what Tracking Hub does for your WordPress site, what you control as an admin, how consent and click IDs work, and how to run a safe test.
 ---
 
-## How SDAS Tracking Hub affects the front end
+## What Tracking Hub does on your site
 
-SDAS Tracking Hub sends server-side events to GA4, Google Ads, and Meta, handling attribution, PII normalization, and queued delivery with retries in the background.
+SDAS Tracking Hub sends key site events (page views, inventory activity, lead submissions) from your WordPress site to analytics and ads platforms in the background.
 
-From the front end, this tracking is mostly invisible. You do not manage tags or pixels directly, but you do control when important events should happen, how consent is collected, and whether pages expose enough context for accurate attribution.
+You do not manage tags, pixels, or JavaScript snippets for Google Analytics, Google Ads, or Meta on each page. Instead, Tracking Hub runs server-side and uses:
+
+- A small front-end script from the plugin to notice important actions.
+- A WordPress REST endpoint on your site to pass those actions to the server.
+- Server-side logic to send those events to connected platforms.
+
+From an admin perspective, your main responsibilities are:
+
+- Deciding **which pages and actions matter**.
+- Making sure **consent and privacy rules** are followed.
+- Keeping **URLs and click IDs stable** for accurate attribution.
+- Running **basic QA** in staging and production.
 
 <Callout kind="info">
 
-SDAS Tracking Hub centralizes tracking for analytics and ads platforms, but privacy still starts at the browser. Front-end implementations must respect consent, avoid exposing sensitive data in the DOM or URLs, and align with your site's legal requirements.
+SDAS Tracking Hub centralizes tracking for analytics and ads platforms, but privacy still starts in the browser. As a site admin, treat tracking as optional per visitor, avoid exposing sensitive data in URLs, and align your setup with your legal and privacy policies.
 
 </Callout>
 
-## What it actually sends (platform integrations)
+## What visitors see (and do not see)
 
-SDAS Tracking Hub sends a single normalized event from your site and fans it out server-side to GA4, Google Ads, and Meta, using each platform's API.
+Visitors never see "Tracking Hub" by name. They notice:
+
+- **Fast pages without multiple trackers**  
+  Because Tracking Hub runs server-side, you avoid loading several third-party tracking scripts on every page.
+
+- **One consistent consent banner or settings panel**  
+  Whatever tool you use for consent (core SDAS banner, cookie notice plugin, custom UI) is the *only* visible signal about tracking.
+
+- **Normal inventory and lead flows**  
+  Inventory browsing, filters, and lead or contact forms behave as usual. Tracking attaches to events that already happen in those flows.
+
+If visitors change their consent, Tracking Hub adjusts silently in the background. The site should feel the same with tracking on or off.
+
+## What you control as a WordPress admin
+
+As a WordPress administrator or site builder, you influence how well Tracking Hub works through a few key decisions.
+
+### Which pages and actions matter
+
+Work with your marketing or analytics owner to decide:
+
+- **Important pages**  
+  - Inventory list pages (search results, category pages).
+  - Vehicle detail pages (VDP).
+  - Lead and contact pages.
+
+- **Important actions**  
+  - Viewing a filtered inventory list.
+  - Opening a vehicle detail page.
+  - Submitting a lead form or contact request.
+
+You do not have to name events or write code yourself, but you should:
+
+- Keep templates for these pages consistent.
+- Avoid changing slugs and URL structures without coordinating.
+- Confirm that each important action is clearly tied to a page or form that Tracking Hub can see.
+
+### Consent and privacy expectations
+
+Consent management controls whether the server is allowed to send events to Google Analytics, Google Ads, and Meta at all.
+
+On your site:
+
+- **Assume tracking is conditional**  
+  Every page and form should work perfectly even if a visitor says no to tracking. Tracking should never block a form from submitting or a page from loading.
+
+- **Use a single consent source of truth**  
+  SDAS Core and Tracking Hub expose helpers so the system can check whether tracking is allowed. Avoid multiple, disconnected consent toggles in different plugins.
+
+- **Avoid PII in URLs or visible identifiers**  
+  Do not include full names, emails, or phone numbers in URL paths or query strings. Tracking Hub handles any necessary user data server-side; your front end should only expose generic or inventory-related context.
+
+- **Make consent easy to change**  
+  Ensure the banner or settings panel is easy to find and use. When visitors update their choice, the site should respect that change from that point forward.
 
 <Callout kind="info">
 
-Measurement IDs, customer IDs, API secrets, access tokens, and developer tokens live in SDAS admin settings and server-side secure storage. Front-end code never embeds or exposes these credentials.
+If your legal or privacy team defines specific rules (for example, "no marketing tracking until marketing consent is granted"), share those requirements with whoever configures SDAS Tracking Hub so the WordPress settings and consent logic match your policy.
 
 </Callout>
 
-### GA4 via Measurement Protocol
+### How the REST tracking endpoint is used
 
-For Google Analytics 4, SDAS Tracking Hub uses the Measurement Protocol endpoint:
+The plugin uses a WordPress REST route to send tracking-related information from the front end to the server:
+
+- **Endpoint**  
+  `/wp-json/sdas/v1/track`
+
+- **How it works (high level)**  
+  - The plugin's JavaScript notices a relevant action, such as a page view or form submit.
+  - It sends a small, non-personal payload to `/wp-json/sdas/v1/track`.
+  - WordPress receives the request and passes it into Tracking Hub's queue.
+  - Tracking Hub then delivers normalized events to connected platforms.
+
+As a site admin:
+
+- You **do not normally call this endpoint yourself**. The plugin and related SDAS extensions handle it.
+- You should avoid installing other plugins that interfere with core REST routing or aggressively block `/wp-json` calls from your own pages.
+- If your theme or another plugin implements custom lead flows, your developer can hook into this endpoint safely (see the Advanced section).
+
+## Click IDs, attribution, and stable URLs
+
+To understand which ads lead to real leads and form submissions, Tracking Hub uses click IDs and related parameters from landing page URLs.
+
+### Which parameters matter
+
+On landing pages, you often see marketing parameters like:
+
+- **Google Ads click IDs**  
+  - `gclid` for standard Google Ads clicks  
+  - `gbraid` and `wbraid` for some privacy-preserving flows
+
+- **Meta click IDs**  
+  - `fbclid` from Meta (Facebook/Instagram) clicks
+
+When a visitor first arrives, SDAS Tracking Hub reads these values and stores them so it can later connect a lead or conversion event back to the original click.
+
+### Why stable URLs matter
+
+For attribution to work reliably:
+
+- **Do not strip click IDs too early**  
+  Avoid rewriting URLs or stripping `gclid`, `gbraid`, `wbraid`, or `fbclid` before Tracking Hub has a chance to see them on the first page load.
+
+- **Keep URL structures predictable**  
+  Use stable URL patterns for:
+  - Inventory list pages.
+  - Vehicle detail pages.
+  - Lead and contact forms.
+
+- **Coordinate with front-end routing**  
+  If your theme or plugins use single-page app style navigation or heavy JavaScript routing:
+  - Ensure the original landing URL (with click IDs) is visible long enough for Tracking Hub to capture it.
+  - Avoid navigation patterns that lose or hide those parameters during the initial page view.
+
+<Callout kind="info">
+
+If your privacy policy or ad platform rules require you to remove click IDs after a certain time, confirm that your SDAS settings and consent behavior match that policy. Do not expose click IDs to unrelated third-party scripts, and do not keep them longer than allowed.
+
+</Callout>
+
+## How Tracking Hub connects to inventory and lead flows
+
+Tracking Hub becomes most useful when it connects real visitor journeys across inventory browsing and lead submission on your site.
+
+### Inventory pages
+
+Coordinate with the [Inventory (front end)](/plugins/sdas-inventory-front-end) plugin so that:
+
+- Inventory list pages use consistent templates and URLs.
+- High-intent views (such as filtered lists) are easy to recognize as specific page types.
+- You avoid creating multiple, slightly different versions of the same list view unless you have a clear tracking reason.
+
+### Vehicle detail pages (VDP)
+
+Vehicle detail pages typically represent strong shopping intent. To help Tracking Hub:
+
+- Use consistent templates for VDPs so the system can recognize them.
+- Keep vehicle identifiers and URL patterns stable.
+- Coordinate with [Vehicle Filters (front end)](/plugins/sdas-vehicle-filters-front-end) so filter behavior and page state remain predictable.
+
+### Lead and contact forms
+
+Lead submissions are often your primary conversions. Together with [Forms Extension (front end)](/plugins/sdas-forms-extension-front-end):
+
+- Use a small number of standardized lead and contact forms where possible.
+- Avoid multiple, near-duplicate forms that behave differently from a tracking perspective.
+- Confirm that:
+  - Successful submissions always redirect to a clear confirmation or thank-you state.
+  - The form behaves the same whether tracking is on or off.
+
+Tracking Hub attaches to the submission event and passes anonymized metadata server-side while PII stays within your secure WordPress and CRM flows.
+
+## Practical admin test plan
+
+Use this plan in a staging or test environment where SDAS Tracking Hub is enabled and connected to non-production properties. Work with whoever monitors SDAS admin screens or logs to confirm results.
+
+<Steps>
+
+<Step title="Check consent behavior" icon="shield">
+
+- Open your staging site in a private or incognito window.
+- When the consent banner appears, **deny** marketing or analytics tracking.
+- Browse:
+  - At least one inventory list page.
+  - At least one vehicle detail page.
+  - A lead or contact form page, and submit a test lead.
+- Confirm:
+  - Pages load quickly.
+  - Forms submit successfully.
+  - You do not see extra popups or errors about tracking.
+
+Then update your consent to **allow** tracking (using the same banner or settings), and repeat the same journey.
+
+Success signal: The user experience looks and feels the same with tracking off or on. The only difference is what Tracking Hub is allowed to send in the background.
+
+</Step>
+
+<Step title="Visit key inventory and VDP pages" icon="monitor">
+
+- With tracking allowed, start from a "campaign-style" URL if your team has one (for example, a staging link that includes `gclid` or `fbclid` for testing).
+- Visit:
+  - A primary inventory list page (with typical filters applied).
+  - At least one vehicle detail page from that list.
+- Watch the address bar:
+  - Confirm that click ID parameters (such as `gclid` or `fbclid`) appear on the landing page.
+  - Confirm that later pages have sensible, stable URLs, even if the click IDs no longer appear.
+
+Ask your developer or analytics owner to check the SDAS Tracking Hub admin or logs.
+
+Success signal: They see server-side events for inventory and VDP views that match your test journey and, where expected, retain the original click/source information.
+
+</Step>
+
+<Step title="Submit a test lead" icon="file-text">
+
+- With tracking still allowed, go to your main lead or contact form.
+- Complete the form with clearly fake but realistic details (for example, "Test User", a test email at your domain, and a note like "SDAS tracking test").
+- Confirm on the front end:
+  - The form validates and submits without delay.
+  - You see a thank-you message or confirmation page.
+
+Then ask the person who monitors SDAS or your CRM to confirm:
+
+- The lead reached the CRM or email destination as expected.
+- Tracking Hub shows a conversion event or lead-related event for this submission.
+
+Success signal: The lead appears in your CRM or email inbox, and Tracking Hub records exactly one conversion event for that submission in the admin or logs.
+
+</Step>
+
+<Step title="Repeat with consent off (optional)" icon="x-circle">
+
+- Reset your browser session (new private window).
+- Deny tracking in the consent banner.
+- Repeat the same:
+  - Inventory visit.
+  - Vehicle detail page view.
+  - Lead form submission.
+
+Ask your monitoring contact to check again.
+
+Success signal: The lead still arrives in your CRM or email, but Tracking Hub either does not record marketing events for this journey or records only what your policy allows for non-consenting visitors.
+
+</Step>
+
+</Steps>
+
+## Advanced (developers)
+
+The details in this section are primarily for developers integrating SDAS Tracking Hub with custom themes or plugins. Site admins can review them, but you do not need to change code to benefit from Tracking Hub.
+
+### What Tracking Hub sends to external platforms
+
+Tracking Hub sends normalized events from your WordPress site to external platforms server-side. Developers do not need to embed platform credentials or scripts in the front end.
+
+<Callout kind="info">
+
+Measurement IDs, customer IDs, API secrets, access tokens, and developer tokens live in SDAS admin settings and server-side secure storage. Front-end code never embeds or exposes these values.
+
+</Callout>
+
+#### GA4 via Measurement Protocol
+
+For Google Analytics 4, Tracking Hub uses the Measurement Protocol endpoint:
 
 - **Endpoint**  
   `https://www.google-analytics.com/mp/collect?measurement_id=...&api_secret=...`
 
 - **Behavior**  
   When an eligible event is queued, the server posts a payload containing:
-  - A client identifier derived from cookies or attribution context
-  - Event name and parameters (for example, page type, lead status, inventory identifiers)
-  - Timestamps and traffic source data when available
+  - A client identifier derived from cookies or attribution context.
+  - Event name and parameters (for example, page type, lead status, inventory identifiers).
+  - Timestamps and traffic source data when available.
 
-- **What front-end teams should know**  
-  You do not load the GA4 JavaScript library or gtag on the page. Your job is to ensure that:
-  - Event trigger points are well defined and stable.
-  - Client identifiers and attribution context (such as landing URLs) remain consistent across the journey.
+#### Google Ads via offline uploadClickConversions
 
-### Google Ads via offline uploadClickConversions
-
-For Google Ads, SDAS Tracking Hub sends conversions as offline events using the Google Ads API `uploadClickConversions` call:
+For Google Ads, Tracking Hub sends conversions as offline events using the Google Ads API `uploadClickConversions` call:
 
 - **Endpoint pattern**  
   `https://googleads.googleapis.com/v22/customers/{customer_id}:uploadClickConversions`
 
 - **Behavior**  
-  When the server has a valid Google Ads click identifier (for example, `gclid`, `gbraid`, or `wbraid`) and a qualifying event:
+  When the server has a valid Google Ads click identifier (`gclid`, `gbraid`, or `wbraid`) and a qualifying event:
   - It queues a conversion payload tied to that click ID.
-  - It includes conversion times and additional context that the platform allows.
+  - It includes conversion times and additional allowed context.
   - It authenticates using OAuth and a developer token configured in admin settings.
 
-- **What front-end teams should know**  
-  Front-end code never talks to the Google Ads API directly. Instead, you help by:
-  - Preserving URL parameters like `gclid`, `gbraid`, and `wbraid` when users navigate.
-  - Avoiding SPA flows that drop or rewrite these parameters without a coordinated strategy.
+#### Meta via Conversions API (CAPI)
 
-### Meta via Conversions API (CAPI)
-
-For Meta (Facebook), SDAS Tracking Hub sends events via the Conversions API:
+For Meta (Facebook), Tracking Hub sends events via the Conversions API:
 
 - **Endpoint pattern**  
   `https://graph.facebook.com/v22.0/{pixel_id}/events`
 
 - **Behavior**  
-  When Meta-related context is available (such as `fbclid`, or cookies equivalent to `fbc` and `_fbp`), SDAS Tracking Hub:
+  When Meta-related context is available (`fbclid`, or cookies equivalent to `fbc` and `_fbp`), Tracking Hub:
   - Sends a server-side event with hashed user data where allowed.
   - Includes click identifiers and browser context for better attribution.
   - Authenticates using an access token configured in admin settings.
 
-- **What front-end teams should know**  
-  You typically do not load the Meta pixel script when SDAS Tracking Hub is in charge. However, you should:
-  - Ensure the consent state clearly covers Meta and other marketing pixels.
-  - Avoid clearing or rewriting cookies and URL parameters that Meta uses unless required by consent or legal policy.
+### REST tracking endpoint for custom front-end features
 
-## What front-end teams influence
-
-Front-end developers and site builders influence three main areas that determine whether SDAS Tracking Hub works correctly and compliantly:
-
-- **Event trigger points**: When key user actions (page views, form submissions, navigation flows) should count as trackable events.
-- **Consent and privacy behavior**: How and when visitors grant or deny tracking, and how that decision affects downstream tracking.
-- **Attribution context**: What contextual information pages expose so server-side tracking can attribute events to the right visit and marketing source.
-
-<Tabs>
-
-<Tab title="What visitors see" icon="monitor">
-
-Visitors do not see SDAS Tracking Hub directly. They experience:
-
-- **Fast pages without extra tracking scripts**: Because SDAS Tracking Hub runs on the server, you avoid loading multiple third-party pixels for GA4, Google Ads, and Meta on every page.
-- **A consistent consent experience**: The consent banner, settings dialog, or cookie preferences are the only visible tracking-related UI.
-- **Normal forms and navigation**: Lead forms, search flows, and other UI behave as expected; tracking attaches to events that already happen as part of the UX.
-
-Your goal on the front end is to keep the UX clean and responsive while ensuring that key points in the journey are clearly defined so tracking can attach to them.
-
-</Tab>
-
-<Tab title="What front-end teams control" icon="code">
-
-Front-end teams coordinate with back-end and analytics owners to define:
-
-- **Which interactions are trackable**  
-  Decide which form submissions, page views, or navigation events are meaningful enough to trigger server-side tracking. You do not name the events here; you agree on *where* in the UI they should fire.
-
-- **When tracking is allowed**  
-  Ensure that any client-side trigger checks the visitor's consent status before it signals that an event is eligible for tracking. If the visitor has not consented, avoid calling any hooks that lead to server-side tracking.
-
-- **What context is available**  
-  Make sure pages and forms expose enough structured context that the back end can use for attribution and PII-safe tracking, such as:
-  - Clear page types (for example, detail vs list vs checkout)
-  - Stable identifiers rendered in the page markup when appropriate
-  - Clean URLs that do not leak sensitive information
-
-- **Error-tolerant UI behavior**  
-  Design your UI so that if tracking fails server-side (queue, retry, or cleanup behavior), visitors still see successful form submissions or navigation. Tracking should never block or slow down the UX.
-
-</Tab>
-
-<Tab title="Testing" icon="check-circle">
-
-Testing SDAS Tracking Hub from the front end focuses on **behavior**, not on direct network calls to GA4, Google Ads, or Meta.
-
-You validate that:
-
-- **Event trigger points line up with the UX**  
-  When a user completes a journey step you care about, the corresponding server-side event is queued — without double-firing on refresh or back/forward navigation.
-
-- **Consent is honored**  
-  When tracking is off, journeys still work but do not produce trackable events. When tracking is on, journeys behave the same but do produce events.
-
-- **Attribution context is stable**  
-  URLs and page state remain consistent across the journey so server-side attribution can connect early touchpoints with later events without relying on fragile front-end hacks.
-
-The next section walks through a safe test plan you can run in any non-production environment.
-
-</Tab>
-
-</Tabs>
-
-## Front-end touchpoints
-
-While the heavy lifting happens server-side, SDAS Tracking Hub exposes a small number of front-end touchpoints you should understand.
-
-### REST tracking endpoint
-
-Front-end JavaScript in the plugin can dispatch tracking-relevant events to a WordPress REST endpoint:
+Front-end JavaScript in the plugin (and your custom code) can dispatch tracking-relevant events to a WordPress REST endpoint:
 
 - **Endpoint**  
   `/wp-json/sdas/v1/track`
@@ -160,7 +322,7 @@ Front-end JavaScript in the plugin can dispatch tracking-relevant events to a Wo
   - The endpoint validates the request and hands it to the server-side queue.
   - Server-side workers then fan the event out to GA4, Google Ads, and Meta.
 
-You usually do not call this endpoint directly; the plugin's scripts (`assets/js/tracking.js` and `form-tracking.js`) handle it. However, if you build custom front-end features, coordinate with the back-end team before sending custom events here.
+You usually do not call this endpoint directly; the plugin's scripts (`assets/js/tracking.js` and `form-tracking.js`) handle it. If you build custom front-end features, coordinate with the back-end team before sending custom events here.
 
 ### Consent gating with sdas_has_tracking_consent
 
@@ -170,9 +332,9 @@ Every tracking call from the front end must respect the visitor's consent status
   The plugin exposes a helper `sdas_has_tracking_consent()` that the back end can use when deciding whether to enqueue tracking or render tracking-related scripts.
 
 - **Front-end expectations**  
-  Coordinate with your back-end colleagues so that:
+  Coordinate so that:
   - Any code path that leads to `/wp-json/sdas/v1/track` only runs when consent is granted.
-  - Consent changes (from banner or settings UI) update the underlying state used by `sdas_has_tracking_consent()` without requiring fragile per-component flags.
+  - Consent changes (from banner or settings UI) update the underlying state used by `sdas_has_tracking_consent()`.
 
 <Callout kind="info">
 
@@ -180,36 +342,9 @@ Treat consent as a single source of truth. Avoid duplicating consent flags in Ja
 
 </Callout>
 
-### Click ID capture and stable URLs
+### Code examples for developers
 
-SDAS Tracking Hub stores marketing click identifiers and attribution context for later server-side sends. This includes:
-
-- **Google Ads click IDs**  
-  - `gclid` for standard Google Ads clicks  
-  - `gbraid` and `wbraid` for certain privacy-preserving flows
-
-- **Meta click IDs and browser identifiers**  
-  - `fbclid` from landing page URLs  
-  - Cookie-like values equivalent to `fbc` and `_fbp` when available
-
-When a user first lands on the site, the plugin reads these identifiers from the URL and browser context and stores them for later use in server-side events.
-
-Stable URLs are critical for this to work well:
-
-- Avoid stripping `gclid`, `gbraid`, `wbraid`, or `fbclid` from the URL before SDAS Tracking Hub can read them.
-- If you rely on client-side routing, coordinate so that:
-  - The initial landing URL with click IDs is visible to the server or tracking scripts.
-  - Subsequent navigation does not unintentionally lose attribution parameters needed for offline conversion uploads.
-
-<Callout kind="info">
-
-If legal or privacy requirements force you to remove click IDs or other identifiers, confirm that your SDAS settings and consent flows match that policy. Never keep identifiers longer than your policy allows, and avoid exposing them to third-party scripts unnecessarily.
-
-</Callout>
-
-## Copy/paste examples
-
-Use these examples as starting points when you need to gate custom tracking by consent or send a minimal custom event to the Tracking Hub REST endpoint.
+These examples show how to gate custom tracking by consent and post a minimal custom event to the Tracking Hub REST endpoint.
 
 <Callout kind="info">
 
@@ -217,7 +352,7 @@ Only send non-PII event metadata from the browser, such as page type, inventory 
 
 </Callout>
 
-### Gate custom front-end tracking by consent (PHP template)
+#### Gate custom front-end tracking by consent (PHP template)
 
 Use the consent helper in your theme or plugin templates to only render custom tracking hooks when consent is granted.
 
@@ -240,9 +375,7 @@ endif;
 
 </CodeGroup>
 
-This pattern keeps your templates aligned with the single consent source of truth and prevents accidental tracking when visitors have not agreed.
-
-### Post a minimal custom event to the Tracking Hub REST endpoint (JavaScript)
+#### Post a minimal custom event to the Tracking Hub REST endpoint (JavaScript)
 
 From your custom JavaScript, send a small, non-PII event payload to `/wp-json/sdas/v1/track` after your own logic confirms that tracking is enabled.
 
@@ -297,9 +430,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </CodeGroup>
 
-This example keeps the payload minimal, non-sensitive, and resilient so tracking never interferes with the user experience.
-
-### Example staging URL with click IDs and why stability matters
+#### Example staging URL with click IDs
 
 When you test attribution in staging, use URLs that contain realistic click identifiers and keep them stable across navigation.
 
@@ -315,126 +446,6 @@ https://staging.dealer-site.test/inventory/suvs?
 </CodeGroup>
 
 Stable URLs ensure that SDAS Tracking Hub can reliably capture `gclid`, `gbraid`, and `fbclid` on the initial landing page and associate later server-side events with the correct marketing touchpoint, even when the user navigates through additional pages.
-
-## Coordinate event trigger points
-
-Event trigger points are the **moments in the UI** that should result in server-side events being queued for GA4, Google Ads, and Meta.
-
-Work with your analytics or marketing owner to document:
-
-- **Which pages matter**: For example, landing pages, key search flows, or high-intent detail pages.
-- **Which interactions matter**: For example, form submissions or specific navigation actions.
-- **Which edge cases to ignore**: For example, repeated submissions, previews, or internal QA journeys that you do not want to track.
-
-Once you agree on these points, implement stable, testable hooks in your front-end code or templates that the back end can listen for, without leaking PII in the process.
-
-## Consent and privacy expectations
-
-Consent management affects whether the server is allowed to send events to GA4, Google Ads, and Meta at all.
-
-On the front end:
-
-- **Do not hard-code assumptions about tracking**  
-  Always treat tracking as conditional. Build your forms and pages so they work identically whether tracking is enabled or disabled for a specific visitor.
-
-- **Centralize consent checks**  
-  Avoid scattering one-off flags across templates. Use a single path to read the visitor's consent status and base any tracking-related decisions on that.
-
-- **Avoid PII in URLs or client-side identifiers**  
-  Let SDAS Tracking Hub handle PII normalization server-side. On the front end, avoid encoding names, emails, phone numbers, or similar sensitive data in URLs, query strings, or client-side identifiers.
-
-- **Keep the banner and settings usable**  
-  Make it obvious how visitors can change their consent, and ensure updates propagate to your tracking logic without page reloads that could cause double-counting.
-
-## Provide attribution-friendly context
-
-Attribution connects a final event (for example, a lead submission) to earlier interactions and traffic sources.
-
-Front-end decisions that help attribution include:
-
-- **Stable URLs**  
-  Keep URL structures consistent between environments and across releases so attribution logic does not break when routes change. Avoid encoding sensitive details directly into the URL.
-
-- **Clear page semantics**  
-  Use consistent templates and markup for the same types of pages. When the back end parses the request, it should be able to tell what kind of page the user saw without relying on fragile CSS selectors.
-
-- **Predictable navigation patterns**  
-  Avoid JavaScript flows that change significant content without updating the URL unless you coordinate with the back end on how those states are represented. Where possible, reflect important navigation state in a way the server can observe.
-
-- **Resilient forms**  
-  Design forms so that they validate and submit predictably, even if the tracking queue is temporarily delayed or unavailable. The server-side queue, retries, and cleanup should not affect whether users see a confirmation.
-
-## How it relates to inventory and lead flows
-
-SDAS Tracking Hub becomes most valuable when it connects real visitor journeys across inventory browsing and lead submission flows.
-
-Common front-end trigger locations include:
-
-- **Inventory lists**  
-  High-intent impressions of vehicle list pages, especially when filtered, often count as meaningful page views. Coordinate with the [SDAS Inventory](/plugins/sdas-inventory-front-end) front-end to expose consistent list templates and URLs.
-
-- **Vehicle detail pages (VDP)**  
-  Visits to individual vehicle detail pages usually represent strong intent and are prime candidates for GA4 and ads events. Align with the [Vehicle Filters (front end)](/plugins/sdas-vehicle-filters-front-end) behavior so that filter state and vehicle identifiers remain clear.
-
-- **Lead and contact forms**  
-  Successful submissions from forms on inventory or generic lead pages are key conversion points. Work with the [Forms Extension (front end)](/plugins/sdas-forms-extension-front-end) to ensure that:
-  - The submission events are stable and debounced.
-  - PII is handled only through server-side processing while tracking attaches to the event metadata.
-
-When you design or change these flows, check how your changes affect event trigger points defined in SDAS Tracking Hub settings (for example, under generic "Events" or plugin-specific options in SDAS settings).
-
-## Safe front-end test plan
-
-Use this test plan in a staging or test environment where SDAS Tracking Hub is enabled and connected to non-production GA4, Google Ads, and Meta properties.
-
-<Steps>
-
-<Step title="Confirm consent and baseline behavior" icon="shield">
-
-- Open the site in a private browsing window with a clean profile.
-- Interact with the consent banner or settings to **deny** tracking.
-- Navigate through key pages and submit at least one test form.
-- Confirm that:
-  - The UI behaves normally.
-  - No additional popups or delays appear that depend on tracking.
-- Then update your consent to **allow** tracking and repeat the same journey.
-
-Success signal: The UX is identical with or without tracking consent; any differences are limited to what is allowed to be tracked server-side.
-
-</Step>
-
-<Step title="Verify event trigger points" icon="terminal">
-
-- With tracking allowed, walk through each defined event trigger point:
-  - Important page views
-  - High-value interactions such as key form submissions
-- For each trigger point:
-  - Perform the action once.
-  - Refresh the page and confirm that the action does not trigger again unless the user repeats it.
-- Coordinate with whoever monitors the SDAS Tracking Hub server-side logs or admin views to confirm that:
-  - Exactly one event is queued per user action.
-  - Events appear with the expected timestamps and context.
-
-Success signal: Every agreed trigger point results in one server-side event per real user action, without duplicates caused by refreshes or navigation quirks.
-
-</Step>
-
-<Step title="Validate attribution context stability" icon="bar-chart">
-
-- Start from an entry page that simulates a real acquisition source (for example, by opening a link that represents a campaign or referrer your team uses for testing).
-- Move through your normal user journey toward a key event, such as completing a form.
-- Note:
-  - How the URL changes at each step.
-  - Whether the page type or state is clear from the rendered markup.
-- After completing the journey, work with the back-end or analytics owner to check that:
-  - The final event is associated with the expected earlier page views.
-  - The journey is distinguishable from other flows you do not want to treat the same way.
-
-Success signal: Server-side tracking shows a coherent path from entry to event, without missing or ambiguous steps caused by front-end routing or rendering.
-
-</Step>
-
-</Steps>
 
 ## Where to learn more
 

@@ -1,15 +1,15 @@
 ---
 title: SDAS CSV Importer front-end guide
-description: Learn how the SDAS CSV Importer affects vehicle inventory pages, what to QA after imports, and how to handle background processing delays with visitors.
+description: Learn how SDAS CSV Importer changes your public vehicle pages in WordPress, what to QA after imports, and how to explain background delays.
 ---
 
-## How the CSV importer affects your front end
+## How the CSV importer affects your WordPress site
 
 `sdas-csv-importer` is a CSV-based vehicle import pipeline with background processing and image re-processing. It does not add new widgets or visitor-facing UI elements to your theme.
 
 <Callout kind="info">
 
-The importer runs on the admin/server side only. Admin users trigger imports and configuration in the dashboard, and cron/background jobs handle scheduled imports, hourly processing, and daily cleanup. Visitors never interact with the importer directly, and there are no shortcodes or front-end widgets tied to it.
+The importer runs on the admin/server side only. WordPress administrators and site builders trigger imports and configuration in the dashboard, and cron/background jobs handle scheduled imports, hourly processing, and daily cleanup. Visitors never interact with the importer directly, and there are no shortcodes or front-end widgets tied to it.
 
 </Callout>
 
@@ -19,14 +19,14 @@ The importer changes **what visitors see**, not **how they interact**. It popula
 
 </Callout>
 
-Front-end teams should treat each import (manual or scheduled) as a content deployment that can change:
+As an admin or site builder, treat each import (manual or scheduled) as a content deployment that can change:
 
 - Which vehicles appear on listing pages
 - Vehicle detail content (pricing, specs, descriptions)
 - Vehicle images and image order
 - Availability badges and any inventory-driven labels
 
-Once an import runs, validate that your inventory templates still behave as expected and that design assumptions still hold with the new data.
+After an import runs, review your key public-facing pages to confirm that inventory templates still behave as expected and that your design assumptions still hold with the new data.
 
 ## What changes on the front end after an import
 
@@ -38,15 +38,15 @@ Imports update SDAS Inventory data and image metadata, which SDAS Inventory fron
 
 From a visitor perspective, these changes look like inventory and media updates, not theme changes. Your templates, filters, and layout stay the same, but the content they render can shift significantly with each import.
 
-## How it interacts with other layers
+## How it interacts with other plugins
 
-The CSV importer plugs into the broader SDAS stack. Front-end behavior comes from how other plugins read and present the imported data.
+The CSV importer plugs into the broader SDAS stack. What visitors see depends on how your other plugins read and present the imported data.
 
 - **SDAS Inventory**: SDAS Inventory templates and shortcodes render whatever vehicles and metadata the importer writes to the vehicle post type. If the importer changes a price, status, or image gallery, the next page load immediately reflects those changes in SDAS Inventory front-end components.
 - **SDAS Vehicle Filters**: Vehicle Filters evaluate the current inventory on each filter or search request. When an import adds, removes, or updates vehicles or filterable fields (for example, body style, year, fuel type), those changes automatically appear the next time a visitor runs a filter query.
 - **SDAS Tracking Hub**: Tracking Hub instruments inventory list and vehicle detail views. After large imports or structural feed changes, re-validate that tracking events still fire with the correct vehicle IDs, prices, and metadata so reporting stays aligned with the new inventory set.
 
-If you see unexpected behavior in listings, filters, or tracking after an import, debug from the bottom up: confirm the imported SDAS Inventory vehicle data first, then verify Vehicle Filters queries, then confirm Tracking Hub events.
+If you see unexpected behavior in listings, filters, or tracking after an import, start by confirming the imported SDAS Inventory vehicle data in the WordPress admin, then verify Vehicle Filters queries, then confirm Tracking Hub events.
 
 ## What does not change
 
@@ -58,9 +58,9 @@ The CSV importer leaves your front-end building blocks intact:
 
 If you already use plugins like SDAS Inventory or SDAS Vehicle Filters, those components continue to render as before. The importer only changes the underlying inventory content they read from.
 
-## Post-import QA checklist for front-end teams
+## Post-import QA checklist for WordPress admins and site builders
 
-Use this checklist after each import, especially when CSV structure, image sources, or upstream data providers change.
+Use this checklist after each import, especially when CSV structure, image sources, or upstream data providers change. You can run these checks yourself or hand them to anyone who helps manage your site content.
 
 <Steps>
 
@@ -138,7 +138,7 @@ When background processing is active:
 
 ### How to communicate status to stakeholders and visitors
 
-Align with product owners and content teams on how to talk about these delays:
+Coordinate with product owners, marketing, and dealership staff so everyone understands how inventory updates roll out on the live site.
 
 - For internal teams: share approximate timelines for when imported vehicles and images will fully stabilize on the site.
 - For customer-facing communication: avoid promising instant updates after every CSV upload; instead, describe updates as "processed shortly" or "available after syncing."
@@ -208,9 +208,9 @@ We are updating inventory photos. Some galleries may look incomplete while proce
 
 ## Where to configure and run imports
 
-Front-end teams often need to know where imports are configured so they can anticipate changes and schedule QA.
+Administrators and site builders often need to know where imports are configured so they can anticipate changes and schedule QA time.
 
-Use the main SDAS CSV Importer plugin page for configuration, scheduling, and operational details.
+Use the main SDAS CSV Importer plugin page in your WordPress admin for configuration, scheduling, and operational details.
 
 <Columns cols={1}>
 
@@ -221,8 +221,12 @@ Use the main SDAS CSV Importer plugin page for configuration, scheduling, and op
     cta="Open importer docs"
   >
 
-  Learn how to set up CSV sources, schedule imports, and monitor background processing so you can coordinate front-end QA and releases.
+  Learn how to set up CSV sources, schedule imports, and monitor background processing so you can coordinate live-site QA and marketing releases.
 
   </Card>
 
 </Columns>
+
+## Advanced (developers)
+
+For developers working alongside admins and site builders, SDAS CSV Importer runs entirely on the admin and server side and relies on background jobs to process feeds and images. When you debug issues, start from the imported SDAS Inventory data in the database, then follow how front-end plugins render that data into your theme.
