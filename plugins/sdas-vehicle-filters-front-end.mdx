@@ -157,6 +157,126 @@ The shortcode controls **what** is rendered and **how many** vehicles appear; yo
 
 </Callout>
 
+## Copy/paste layouts
+
+Start from these copy/paste-ready layouts to wire `[sdas_filters]` and `[sdas_filter_results]` into your theme with stable containers that the plugin’s JavaScript can bind to automatically.
+
+<Callout kind="tip">
+
+Keep container selectors (`id` or class names) stable over time. SDAS Vehicle Filters uses these containers to attach behavior and update results via AJAX.
+
+</Callout>
+
+### Two-column layout: filters sidebar + results main
+
+This pattern puts filters in a sidebar on the left and results on the right.
+
+<CodeGroup tabs="HTML">
+
+```html
+<div class="vf-page vf-page--two-column">
+
+  <div class="vf-layout">
+    <aside class="vf-sidebar" aria-label="Vehicle filters">
+      <div class="vf-filters" id="vf-filters-sidebar">
+        [sdas_filters]
+      </div>
+    </aside>
+
+    <main class="vf-main" id="vf-results-main" aria-live="polite">
+      <div class="vf-results-grid" id="vf-results-grid">
+        [sdas_filter_results]
+      </div>
+    </main>
+  </div>
+
+</div>
+```
+
+</CodeGroup>
+
+Notes:
+
+- Use clear, dedicated selectors like `#vf-filters-sidebar` and `#vf-results-grid` so integration scripts can target them.
+- The plugin’s front-end JavaScript binds to the `[sdas_filters]` and `[sdas_filter_results]` output and handles AJAX automatically when these shortcodes render on the page.
+
+### Top-bar filters with results below
+
+This pattern keeps filters above the grid in a single column, useful for narrower layouts or mobile-first designs.
+
+<CodeGroup tabs="HTML">
+
+```html
+<div class="vf-page vf-page--top-filters">
+
+  <header class="vf-header">
+    <h1 class="vf-title">Search Inventory</h1>
+  </header>
+
+  <section class="vf-filters-bar" id="vf-filters-bar" aria-label="Vehicle filters">
+    <div class="vf-filters vf-filters--horizontal">
+      [sdas_filters]
+    </div>
+  </section>
+
+  <section class="vf-results-section" aria-live="polite">
+    <div class="vf-results-grid" id="vf-results-grid">
+      [sdas_filter_results]
+    </div>
+  </section>
+
+</div>
+```
+
+</CodeGroup>
+
+Notes:
+
+- Keep the `.vf-filters-bar` and `.vf-results-grid` containers present on all states (initial load and AJAX updates).
+- As long as `[sdas_filters]` and `[sdas_filter_results]` render inside stable containers, the plugin’s scripts connect filter changes to results updates without extra wiring.
+
+### Minimal PHP template with both shortcodes
+
+This snippet shows a minimal custom template that renders both shortcodes with `do_shortcode` and wraps them in predictable containers.
+
+<CodeGroup tabs="PHP">
+
+```php
+<?php
+/**
+ * Template Name: Inventory with Filters
+ */
+
+get_header();
+?>
+
+<main id="primary" class="site-main vf-page vf-page--template">
+
+  <section class="vf-filters-wrapper" id="vf-filters-wrapper" aria-label="Vehicle filters">
+    <div class="vf-filters">
+      <?php echo do_shortcode('[sdas_filters]'); ?>
+    </div>
+  </section>
+
+  <section class="vf-results-wrapper" id="vf-results-wrapper" aria-live="polite">
+    <div class="vf-results-grid" id="vf-results-grid">
+      <?php echo do_shortcode('[sdas_filter_results]'); ?>
+    </div>
+  </section>
+
+</main>
+
+<?php
+get_footer();
+```
+
+</CodeGroup>
+
+Notes:
+
+- The PHP template keeps containers like `#vf-filters-wrapper` and `#vf-results-grid` consistent, even as content changes.
+- With both shortcodes present, SDAS Vehicle Filters enqueues its assets and binds AJAX behavior to these containers automatically; you only need to adjust CSS and layout to match your theme.
+
 ## Typical front-end architecture
 
 A standard integration has three visible pieces on the public site:
@@ -395,7 +515,7 @@ When you demo or QA the experience, walk through it as a visitor:
 - Use the back button to step through previous filter states and confirm the filters and results stay in sync.
 - Copy the URL with filters applied, open it in a new tab or incognito window, and ensure the page loads with the same filters active.
 
-If any of these checks fail, investigate the theme wiring and URL handling before assuming inventory data issues.
+If any of这些 checks fail, investigate the theme wiring and URL handling before assuming inventory data issues.
 
 </Tab>
 

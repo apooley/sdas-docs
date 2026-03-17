@@ -207,6 +207,115 @@ If legal or privacy requirements force you to remove click IDs or other identifi
 
 </Callout>
 
+## Copy/paste examples
+
+Use these examples as starting points when you need to gate custom tracking by consent or send a minimal custom event to the Tracking Hub REST endpoint.
+
+<Callout kind="info">
+
+Only send non-PII event metadata from the browser, such as page type, inventory identifiers, or anonymized flags. Never include names, emails, phone numbers, or other personally identifiable information in custom payloads, and always respect the consent state before triggering tracking.
+
+</Callout>
+
+### Gate custom front-end tracking by consent (PHP template)
+
+Use the consent helper in your theme or plugin templates to only render custom tracking hooks when consent is granted.
+
+<CodeGroup tabs="PHP template">
+
+```php
+<?php
+// Example: Only output custom tracking markup when tracking consent is granted.
+if ( function_exists( 'sdas_has_tracking_consent' ) && sdas_has_tracking_consent() ) :
+    ?>
+    <script>
+      // Safe to run custom tracking-related JS here.
+      // Avoid PII and rely on the REST endpoint for server-side tracking.
+      window.sdasCustomTrackingEnabled = true;
+    </script>
+    <?php
+endif;
+?>
+```
+
+</CodeGroup>
+
+This pattern keeps your templates aligned with the single consent source of truth and prevents accidental tracking when visitors have not agreed.
+
+### Post a minimal custom event to the Tracking Hub REST endpoint (JavaScript)
+
+From your custom JavaScript, send a small, non-PII event payload to `/wp-json/sdas/v1/track` after your own logic confirms that tracking is enabled.
+
+<CodeGroup tabs="JavaScript">
+
+```javascript
+// Example: post a minimal, non-PII event to the SDAS Tracking Hub REST endpoint.
+async function sendSdasCustomEvent() {
+  // Optionally check a flag that your PHP template set when consent is granted.
+  if (!window.sdasCustomTrackingEnabled) {
+    return
+  }
+
+  const payload = {
+    event_type: "custom_inventory_view",
+    context: {
+      page_type: "inventory_list",
+      inventory_source: "primary",
+      // Include only non-PII metadata that helps attribution.
+      experiment_variant: "variant_b"
+    }
+  }
+
+  try {
+    const response = await fetch("/wp-json/sdas/v1/track", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "same-origin",
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      // Optionally log for debugging in non-production environments.
+      console.warn("SDAS tracking request failed with status", response.status)
+    }
+  } catch (error) {
+    // Do not block the UX; treat tracking failures as non-fatal.
+    console.warn("SDAS tracking request error", error)
+  }
+}
+
+// Call this from an interaction you have defined as a trigger point.
+document.addEventListener("DOMContentLoaded", () => {
+  const inventoryList = document.querySelector("[data-sdas-inventory-list]")
+  if (inventoryList) {
+    sendSdasCustomEvent()
+  }
+})
+```
+
+</CodeGroup>
+
+This example keeps the payload minimal, non-sensitive, and resilient so tracking never interferes with the user experience.
+
+### Example staging URL with click IDs and why stability matters
+
+When you test attribution in staging, use URLs that contain realistic click identifiers and keep them stable across navigation.
+
+<CodeGroup tabs="Test URL">
+
+```text
+https://staging.dealer-site.test/inventory/suvs?
+  gclid=TEST_GCLID_123&
+  gbraid=TEST_GBRAID_456&
+  fbclid=TEST_FBCLID_789
+```
+
+</CodeGroup>
+
+Stable URLs ensure that SDAS Tracking Hub can reliably capture `gclid`, `gbraid`, and `fbclid` on the initial landing page and associate later server-side events with the correct marketing touchpoint, even when the user navigates through additional pages.
+
 ## Coordinate event trigger points
 
 Event trigger points are the **moments in the UI** that should result in server-side events being queued for GA4, Google Ads, and Meta.

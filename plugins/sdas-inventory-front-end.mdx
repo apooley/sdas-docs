@@ -106,6 +106,266 @@ Shortcodes may support attributes for configuring queries, layouts, or behavior.
 
 </Callout>
 
+## Copy/paste examples
+
+Use this section as a library of ready-to-use snippets for common inventory patterns. Each pattern includes an editor-friendly version and a theme template example where it is relevant.
+
+<Callout kind="info">
+
+The examples below use shortcodes without attributes so they are safe to paste into most sites. If you add attributes such as filters or layout flags, verify support and defaults in the SDAS Inventory shortcode class files before relying on them.
+
+</Callout>
+
+### Inventory landing or listing page
+
+Create a primary inventory page with search above a grid of vehicles.
+
+<CodeGroup tabs="Editor (shortcodes),Theme template (PHP)">
+
+```php
+<!-- Editor content (Classic or block editor Shortcode block) -->
+
+[sdas_vehicle_search]
+
+[sdas_vehicle_grid]
+```
+
+```php
+<?php
+// Theme template file, for example: page-inventory.php
+
+get_header();
+?>
+
+<main id="primary" class="site-main site-main--inventory">
+
+  <header class="inventory-page-header">
+    <h1 class="inventory-page-title"><?php the_title(); ?></h1>
+  </header>
+
+  <section class="inventory-page-search">
+    <?php echo do_shortcode('[sdas_vehicle_search]'); ?>
+  </section>
+
+  <section class="inventory-page-grid">
+    <?php echo do_shortcode('[sdas_vehicle_grid]'); ?>
+  </section>
+
+</main>
+
+<?php
+get_footer();
+```
+
+</CodeGroup>
+
+### Vehicle detail page sections
+
+Lay out core vehicle content blocks on a vehicle detail template.
+
+<CodeGroup tabs="Editor (shortcodes),Theme template (PHP)">
+
+```php
+<!-- Editor content on the single-vehicle template (if editable) -->
+
+[sdas_vehicle_gallery]
+
+[sdas_vehicle_spec_sheet]
+
+[sdas_payment_calculator]
+
+[sdas_similar_vehicles]
+```
+
+```php
+<?php
+// Theme template file, for example: single-sdas-vehicle.php
+
+get_header();
+?>
+
+<main id="primary" class="site-main site-main--vehicle-detail">
+
+  <?php
+  while (have_posts()) :
+    the_post();
+  ?>
+
+    <article <?php post_class('vehicle-detail'); ?>>
+
+      <header class="vehicle-detail-header">
+        <h1 class="vehicle-title"><?php the_title(); ?></h1>
+      </header>
+
+      <section class="vehicle-detail-gallery">
+        <?php echo do_shortcode('[sdas_vehicle_gallery]'); ?>
+      </section>
+
+      <section class="vehicle-detail-specs">
+        <?php echo do_shortcode('[sdas_vehicle_spec_sheet]'); ?>
+      </section>
+
+      <section class="vehicle-detail-payment">
+        <?php echo do_shortcode('[sdas_payment_calculator]'); ?>
+      </section>
+
+      <section class="vehicle-detail-similar">
+        <h2 class="section-title">Similar vehicles</h2>
+        <?php echo do_shortcode('[sdas_similar_vehicles]'); ?>
+      </section>
+
+    </article>
+
+  <?php
+  endwhile;
+  ?>
+
+</main>
+
+<?php
+get_footer();
+```
+
+</CodeGroup>
+
+### Comparison page
+
+Provide a dedicated comparison view that shows selected vehicles side by side.
+
+<CodeGroup tabs="Editor (shortcodes),Theme template (PHP)">
+
+```php
+<!-- Editor content for a comparison page -->
+
+[sdas_vehicle_compare]
+```
+
+```php
+<?php
+// Theme template file, for example: page-vehicle-compare.php
+
+get_header();
+?>
+
+<main id="primary" class="site-main site-main--vehicle-compare">
+
+  <header class="compare-page-header">
+    <h1 class="compare-page-title"><?php the_title(); ?></h1>
+    <p class="compare-page-intro">
+      Review vehicles side by side to find the best match.
+    </p>
+  </header>
+
+  <section class="compare-page-content">
+    <?php echo do_shortcode('[sdas_vehicle_compare]'); ?>
+  </section>
+
+</main>
+
+<?php
+get_footer();
+```
+
+</CodeGroup>
+
+### Saved vehicles page
+
+Expose a page where visitors can see vehicles they have saved.
+
+<CodeGroup tabs="Editor (shortcodes),Theme template (PHP)">
+
+```php
+<!-- Editor content for a saved vehicles page -->
+
+[sdas_saved_vehicles]
+```
+
+```php
+<?php
+// Theme template file, for example: page-saved-vehicles.php
+
+get_header();
+?>
+
+<main id="primary" class="site-main site-main--saved-vehicles">
+
+  <header class="saved-vehicles-header">
+    <h1 class="saved-vehicles-title"><?php the_title(); ?></h1>
+  </header>
+
+  <section class="saved-vehicles-list">
+    <?php echo do_shortcode('[sdas_saved_vehicles]'); ?>
+  </section>
+
+</main>
+
+<?php
+get_footer();
+```
+
+</CodeGroup>
+
+### Homepage promo strip
+
+Highlight inventory on the homepage using either a slider or a single featured vehicle.
+
+<CodeGroup tabs="Editor (shortcodes),Theme template (PHP)">
+
+```php
+<!-- Editor content for a homepage promo section -->
+
+[sdas_vehicle_slider]
+
+[sdas_featured_vehicle]
+```
+
+```php
+<?php
+// Theme template file, for example: front-page.php
+
+get_header();
+?>
+
+<main id="primary" class="site-main site-main--front-page">
+
+  <section class="homepage-inventory-strip homepage-inventory-strip--slider">
+    <div class="container">
+      <header class="strip-header">
+        <h2 class="strip-title">Featured inventory</h2>
+      </header>
+
+      <div class="strip-content">
+        <?php echo do_shortcode('[sdas_vehicle_slider]'); ?>
+      </div>
+    </div>
+  </section>
+
+  <section class="homepage-featured-vehicle">
+    <div class="container">
+      <header class="strip-header">
+        <h2 class="strip-title">Spotlight vehicle</h2>
+      </header>
+
+      <div class="strip-content">
+        <?php echo do_shortcode('[sdas_featured_vehicle]'); ?>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<?php
+get_footer();
+```
+
+</CodeGroup>
+
+<Callout kind="info">
+
+Use these snippets as starting points. When you extend them with attributes or additional logic, always check the SDAS Inventory shortcode classes in the plugin for the exact attribute names and behavior.
+
+</Callout>
+
 ## Listing pages vs. vehicle detail pages
 
 Inventory experiences on a dealership site generally fall into two categories: a browseable listing and a deep detail view. SDAS Inventory is designed around these two use cases.
@@ -194,7 +454,7 @@ SDAS Vehicle Filters sits on top of SDAS Inventory to provide **AJAX-driven filt
 
 On the front end:
 
-- SDAS Inventory exposes the vehicle data and listing shortcodes; SDAS Vehicle Filters adds controls and filter logic that adjust which vehicles are shown without full page reloads.
+- SDAS Inventory exposes the vehicle data and listing shortcodes; SDAS Vehicle Filters adds controls and filter logic that adjust which vehicles are shown without hard page reloads.
 - You typically place filter components near `sdas_vehicle_grid` or `sdas_vehicle_search` output so users can refine the same underlying inventory.
 
 For details on filter widgets and interactions, see [SDAS Vehicle Filters](/plugins/sdas-vehicle-filters) and the front-end patterns in [Vehicle Filters (front end)](/plugins/sdas-vehicle-filters-front-end).

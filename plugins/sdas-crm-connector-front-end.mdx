@@ -156,6 +156,44 @@ Because the connector includes queuing and retry behavior, CRM delivery might no
 
 If CRM delivery is temporarily delayed, users should still feel confident that their lead was captured correctly by the site.
 
+### Copy/paste: visitor confirmation copy
+
+Use this ready-made copy to keep visitor messaging aligned with background CRM delivery. Adjust tone to match your brand, but keep the intent and promises the same.
+
+<CodeGroup tabs="Thank-you page,Inline success,Internal-only note">
+
+```text
+Thank-you page body (generic)
+
+Thank you for getting in touch.
+
+We have received your details and shared them with our team. A member of our staff will review your enquiry and contact you as soon as possible.
+
+If you contacted us about a specific vehicle, we will check its latest availability before we reply. If you submitted this outside of our normal opening hours, we will follow up on the next business day.
+```
+
+```text
+Inline success message (short)
+
+Thank you, we have received your details. Our team will be in touch soon.
+```
+
+```text
+Internal-only ops note (staging / QA)
+
+Internal note (not visible to visitors):
+
+The site has accepted this submission and queued it for processing. Background jobs will attempt to deliver the lead to connected CRM systems shortly.
+
+If you are testing in staging or QA, verify both:
+- The form submission shows as successful on the site.
+- The corresponding record appears in the CRM within the expected processing window.
+
+This system uses background queues and retries, so CRM records may not update instantly even when the site confirms receipt.
+```
+
+</CodeGroup>
+
 </Tab>
 
 <Tab title="Site-builder checklist" icon="code">

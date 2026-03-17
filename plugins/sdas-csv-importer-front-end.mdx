@@ -154,6 +154,58 @@ If background jobs are still running, treat the inventory as **in flux**. Delay 
 
 </Callout>
 
+## Copy/paste: post-import communication
+
+Use these templates as-is or adapt them when you hand off after a scheduled import or when visitors might notice processing delays.
+
+<CodeGroup tabs="Internal handoff,Visitor banner" show-lines={false}>
+
+```text
+Subject: Inventory import complete – front-end QA in progress
+
+Hi team,
+
+The scheduled SDAS CSV Importer run for vehicle inventory finished successfully.
+
+What is live now:
+- New and updated vehicles are available on the inventory listing and detail pages.
+- Pricing, specs, and availability reflect the latest feed.
+
+What is still processing:
+- Background jobs are re-processing vehicle images and related media.
+- Some vehicles may briefly show placeholder images, older photos, or lower-quality thumbnails while this completes.
+
+Front-end QA:
+- We are working through the SDAS CSV Importer front-end QA checklist:
+  - Listing pages (counts, pagination, card layouts)
+  - Vehicle detail templates (titles, prices, VINs, specs, badges)
+  - Image galleries (hero image, thumbnails, aspect ratios)
+  - Filters, search, and sort behavior
+  - Responsive layouts at key breakpoints
+  - Tracking and conversion events
+
+Timeline:
+- Image and background processing are expected to settle within the next few hours.
+- We will flag any issues that require content or configuration changes.
+
+If you plan any campaigns (for example, "New arrivals" promotions) that depend on this import, schedule them after we confirm QA is complete and inventory has stabilized.
+
+Thanks,
+[Your name or team]
+```
+
+```text
+Headline: Inventory updating
+
+Body:
+We are updating our vehicle inventory and photos. Some listings may briefly show incomplete image galleries or older photos while processing finishes. Vehicle availability and pricing are up to date.
+
+Optional shorter version (for narrow banners):
+We are updating inventory photos. Some galleries may look incomplete while processing finishes.
+```
+
+</CodeGroup>
+
 ## Where to configure and run imports
 
 Front-end teams often need to know where imports are configured so they can anticipate changes and schedule QA.

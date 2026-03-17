@@ -169,6 +169,101 @@ jQuery(document).on("input", ".sdas-vehicle-selector", function () {
 
 The plugin owns the `sdas_get_vehicles` logic; you control how to present the returned vehicles in your form UI.
 
+## Copy/paste examples
+
+Use these snippets as starting points when embedding WPForms-based lead forms in SDAS contexts. Replace placeholder IDs and adjust markup to match your theme.
+
+### Embed a lead form on a vehicle detail page (editor shortcode)
+
+<CodeGroup tabs="Block editor,Classic editor">
+
+```php
+<!-- Block editor: add a Shortcode block on your VDP template or single vehicle page -->
+
+[wpforms id="1234" title="false" description="false"]
+
+<!-- 1234 is a placeholder form ID; replace it with your actual WPForms form ID. -->
+```
+
+```php
+<!-- Classic editor: paste into the content area of your VDP template or single vehicle page -->
+
+[wpforms id="1234" title="false" description="false"]
+
+<!-- 1234 is a placeholder form ID; replace it with your actual WPForms form ID. -->
+```
+
+</CodeGroup>
+
+### Embed the same form in a theme template with `do_shortcode`
+
+<CodeGroup tabs="PHP template function">
+
+```php
+<?php
+/**
+ * Inside a theme template file, for example single-vehicle.php
+ * Echo the same WPForms lead form used on your VDP.
+ */
+
+echo do_shortcode(
+    '[wpforms id="1234" title="false" description="false"]'
+);
+
+// 1234 is a placeholder form ID; replace it with your actual WPForms form ID.
+?>
+```
+
+</CodeGroup>
+
+### Vehicle selector input markup for AJAX search
+
+Use this input inside a WPForms HTML field or in a custom template. The `.sdas-vehicle-selector` class wires it to the AJAX search example shown earlier.
+
+<CodeGroup tabs="HTML field,Custom template">
+
+```html
+<!-- Inside a WPForms HTML field in the form builder -->
+
+<label for="sdas-vehicle-selector">
+  Vehicle you are interested in
+</label>
+
+<input
+  type="text"
+  id="sdas-vehicle-selector"
+  name="vehicle_selector"
+  class="sdas-vehicle-selector"
+  placeholder="Search by stock number, VIN, or model"
+/>
+
+<div class="sdas-vehicle-suggestions" aria-live="polite"></div>
+```
+
+```html
+<!-- Inside a theme template or custom template part -->
+
+<div class="sdas-vehicle-selector-wrapper">
+  <label for="sdas-vehicle-selector">
+    Vehicle you are interested in
+  </label>
+
+  <input
+    type="text"
+    id="sdas-vehicle-selector"
+    name="vehicle_selector"
+    class="sdas-vehicle-selector"
+    placeholder="Search by stock number, VIN, or model"
+  />
+
+  <div class="sdas-vehicle-suggestions" aria-live="polite"></div>
+</div>
+```
+
+</CodeGroup>
+
+Pair this markup with your JavaScript that listens to `.sdas-vehicle-selector` input events and calls the `sdas_get_vehicles` AJAX action.
+
 ## Build a vehicle lead form
 
 Use WPForms to design the form, then layer SDAS behavior on top. The extension does not change how you add fields or shortcodes to pages.
