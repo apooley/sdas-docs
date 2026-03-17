@@ -195,7 +195,7 @@ These types are used inside JobPosting and are documented separately.
 
   <Card
     title="PostalAddress"
-    href="/architecture/schema-postaladdress"
+    href="#postaladdress"
     icon="map-pin"
     cta="Model physical job locations"
   >
@@ -206,7 +206,7 @@ Learn how SDAS builds PostalAddress for dealership and office addresses.
 
   <Card
     title="Country"
-    href="/architecture/schema-country"
+    href="#country"
     icon="globe"
     cta="Constrain remote job regions"
   >
@@ -217,7 +217,7 @@ See how Country is used for remote roles and applicant location requirements.
 
   <Card
     title="QuantitativeValue"
-    href="/architecture/schema-quantitativevalue"
+    href="#quantitativevalue"
     icon="bar-chart"
     cta="Represent salary ranges"
   >
@@ -227,3 +227,17 @@ Understand how SDAS represents salary and compensation ranges in schema.
   </Card>
 
 </Columns>
+
+## Related schema types used in JobPosting
+
+### PostalAddress
+
+PostalAddress appears inside `jobLocation` for local jobs and anchors each JobPosting to a concrete dealership or office address. SDAS populates the nested address with street, city, region, postal code, and country fields that match the physical store data. Search engines use this detail to geolocate the role and align it with the dealership's local market. Accurate PostalAddress data strengthens local SEO signals for on-site positions.
+
+### Country
+
+Country is used in remote JobPosting variants to describe where the role is based and who can apply. SDAS sets Country in both `jobLocation` and `applicantLocationRequirements` to capture the allowed applicant geography, such as a specific country-wide remote role. This approach tells search engines that the job is remote but constrained to candidates in a particular country. Consistent Country usage prevents mismatches between remote visibility and real hiring eligibility.
+
+### QuantitativeValue
+
+QuantitativeValue models the numeric portion of `baseSalary` in JobPosting schema. SDAS uses it to express salary ranges with minimum and maximum values and a `unitText` such as `YEAR` or `HOUR`. This structure lets search engines understand compensation bands rather than a single opaque value. Accurate QuantitativeValue data improves how job listings appear in rich results that highlight pay information.

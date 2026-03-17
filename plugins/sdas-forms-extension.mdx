@@ -1,0 +1,378 @@
+---
+title: SDAS Forms Extension
+description: Developer reference for the SDAS Forms Extension plugin, including WPForms integration, lead submission hooks, and the sdas_get_vehicles AJAX endpoint.
+---
+
+## Overview
+
+SDAS Forms Extension adds a lead-capture layer on top of supported WordPress form plugins, with first-class integration for WPForms. It listens to form submissions, normalizes lead data, and exposes hooks and AJAX endpoints so you can connect SDAS leads to CRMs and custom workflows.
+
+The plugin bootstrap file is `wp-content/plugins/sdas-forms-extension/sdas-forms-extension.php`. Internally, it wires up form-processing and AJAX handlers from the `includes` directory.
+
+<Callout kind="info">
+
+**Intended audience:** WordPress and PHP developers extending SDAS behavior or integrating SDAS leads with other systems. For front-end usage, see the Forms Extension front-end documentation.
+
+</Callout>
+
+## Prerequisites
+
+<Callout kind="info">
+
+Make sure the following are in place before you rely on SDAS Forms Extension hooks:
+
+- WordPress is running, and SDAS Forms Extension is **installed and active**.
+- WPForms is installed and configured for any forms you expect to produce leads.
+- SDAS Core and related plugins are active if your integration depends on them.
+
+</Callout>
+
+## How SDAS integrates with WPForms
+
+SDAS Forms Extension hooks into WPForms form submissions to capture and process leads.
+
+### WPForms process complete hook
+
+The plugin listens for completed WPForms submissions using the standard WPForms hook:
+
+```php
+add_action( 'wpforms_process_complete', '...', 10, 4 );
+```
+
+This hook is registered from:
+
+- `wp-content/plugins/sdas-forms-extension/includes/Processing/FormProcessor.php`
+
+When a WPForms submission completes, FormProcessor receives the WPForms submission data via this hook, transforms it into SDAS lead data, and then fires the SDAS-specific action `sdas_lead_submitted`.
+
+You generally do **not** need to hook `wpforms_process_complete` directly unless you are building very low-level integrations. In most cases, you should listen to `sdas_lead_submitted`, which abstracts away WPForms-specific details.
+
+### Conceptual example: using wpforms_process_complete
+
+This example shows the shape of WPForms integration conceptually. It is **not** the internal plugin implementation, but illustrates how SDAS attaches to the WPForms hook.
+
+<CodeGroup tabs="Custom integration">
+
+```php
+<?php
+/**
+ * Example: hook into WPForms process complete for custom logic.
+ * Use this only if you need low-level access to WPForms data.
+ */
+
+add_action(
+    'wpforms_process_complete',
+    function ( $fields, $entry, $form_data, $entry_id ) {
+        // Inspect WPForms submission data.
+        error_log( 'WPForms submission ID: ' . (int) $entry_id );
+        error_log( 'Form ID: ' . (int) $form_data['id'] );
+
+        // Example: read a specific field value by field ID.
+        // Adjust the field ID to match your form configuration.
+        if ( isset( $fields[3]['value'] ) ) {
+            $email = $fields[3]['value'];
+            error_log( 'Submitted email: ' . $email );
+        }
+
+        // Normally you should prefer the SDAS-level action
+        // sdas_lead_submitted instead of this hook.
+    },
+    10,
+    4
+);
+```
+
+</CodeGroup>
+
+Use this pattern only when you need to work **before** SDAS constructs its lead object, or when you want to modify WPForms data in a way that SDAS itself does not support.
+
+## Lead submission hook: sdas_lead_submitted
+
+After processing a supported form submission, SDAS Forms Extension fires a SDAS-specific action to announce that a lead has been created or updated.
+
+### Action signature and behavior
+
+The action fired from `FormProcessor.php` is:
+
+```php
+do_action( 'sdas_lead_submitted', $lead_id, $lead_data );
+```
+
+FormProcessor calls this through a helper:
+
+- If `sdas_do_action_safe` exists, it calls `sdas_do_action_safe( 'sdas_lead_submitted', $lead_id, $lead_data )`.
+- Otherwise, it falls back to `do_action( 'sdas_lead_submitted', $lead_id, $lead_data )`.
+
+This ensures SDAS can optionally wrap lead notifications with additional safety or logging, while maintaining compatibility if the helper is not defined.
+
+Use this action to:
+
+- Sync SDAS leads into external CRMs.
+- Trigger follow-up workflows, notifications, or tracking events.
+- Attach custom metadata or perform side effects whenever a lead is captured.
+
+### Parameters
+
+Use these parameter descriptions when writing listeners:
+
+<ParamField body="lead_id" param-type="int" required="true" show-location="false">
+
+Internal identifier of the SDAS lead record associated with the form submission.
+
+</ParamField>
+
+<ParamField body="lead_data" param-type="array" required="true" show-location="false">
+
+Associative array of normalized lead data produced by SDAS Forms Extension. The exact structure depends on your SDAS configuration and the form fields mapped into the SDAS schema.
+
+</ParamField>
+
+### Example: listening to sdas_lead_submitted
+
+Hook `sdas_lead_submitted` from a custom plugin or your theme to react to new or updated leads.
+
+<CodeGroup tabs="Custom listener">
+
+```php
+<?php
+/**
+ * Example: listen for SDAS lead submissions and send data to a CRM.
+ */
+
+add_action(
+    'sdas_lead_submitted',
+    function ( $lead_id, $lead_data ) {
+        // Basic logging for observability.
+        error_log( sprintf( 'SDAS lead submitted: ID %d', (int) $lead_id ) );
+
+        // Extract useful fields from the lead data array.
+        // Adjust keys to match your SDAS mapping.
+        $email     = isset( $lead_data['email'] ) ? $lead_data['email'] : null;
+        $full_name = isset( $lead_data['name'] ) ? $lead_data['name'] : null;
+        $vehicle   = isset( $lead_data['vehicle'] ) ? $lead_data['vehicle'] : null;
+
+        // Guard against incomplete data if your integration requires certain fields.
+        if ( ! $email ) {
+            error_log( 'SDAS lead missing email, skipping CRM sync.' );
+            return;
+        }
+
+        // Construct payload for an external CRM or marketing tool.
+        $payload = array(
+            'external_id' => $lead_id,
+            'email'       => $email,
+            'name'        => $full_name,
+            'vehicle'     => $vehicle,
+            'source'      => 'sdas-forms-extension',
+        );
+
+        // Replace this with your own HTTP client or SDK.
+        // Example using wp_remote_post:
+        $response = wp_remote_post(
+            'https://api.crm-dealercloud.com/v1/leads',
+            array(
+                'headers' => array(
+                    'Authorization' => 'Bearer eyJhbGciOiJIUzI1NiIs...',
+                    'Content-Type'  => 'application/json',
+                ),
+                'body'    => wp_json_encode( $payload ),
+                'timeout' => 10,
+            )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            error_log( 'Error sending lead to CRM: ' . $response->get_error_message() );
+            return;
+        }
+
+        $status_code = wp_remote_retrieve_response_code( $response );
+        if ( $status_code >= 200 && $status_code < 300 ) {
+            error_log( 'Lead synced to CRM successfully.' );
+        } else {
+            error_log( 'Unexpected CRM response status: ' . $status_code );
+        }
+    },
+    10,
+    2
+);
+```
+
+</CodeGroup>
+
+<Callout kind="info">
+
+`sdas_lead_submitted` runs after SDAS Forms Extension has finished processing the form submission. Avoid expensive or blocking operations where possible, or move them to asynchronous processing (for example, a queue worker) to keep page responses fast.
+
+</Callout>
+
+## AJAX endpoint: sdas_get_vehicles
+
+SDAS Forms Extension exposes a public AJAX action to fetch vehicle data, typically used by front-end forms to power dynamic dropdowns or suggestions.
+
+### Action registration and scope
+
+The public AJAX action is registered in:
+
+- `wp-content/plugins/sdas-forms-extension/includes/Plugin.php`
+
+The plugin exposes it for both authenticated and unauthenticated users:
+
+- `wp_ajax_sdas_get_vehicles`
+- `wp_ajax_nopriv_sdas_get_vehicles`
+
+This means front-end code can call the endpoint for visitors who are not logged in, as long as it includes the correct `action` parameter.
+
+<Callout kind="info">
+
+Refer to the [Forms Extension front-end guide](/plugins/sdas-forms-extension-front-end) for how the built-in JavaScript invokes `sdas_get_vehicles` and how the response is rendered into form controls.
+
+</Callout>
+
+### Request format
+
+From JavaScript, send a standard WordPress AJAX request to `admin-ajax.php` with the required `action` query parameter.
+
+<CodeGroup tabs="JavaScript">
+
+```javascript
+// Example: fetch vehicles for a form select input.
+const ajaxUrl = window.sdasAjaxUrl || "/wp-admin/admin-ajax.php";
+
+async function loadVehiclesForForm() {
+  const params = new URLSearchParams();
+  params.append("action", "sdas_get_vehicles");
+
+  // Optionally include filters depending on how the endpoint is implemented.
+  // params.append("make", "Toyota");
+  // params.append("location", "dallas");
+
+  const response = await fetch(ajaxUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    },
+    body: params.toString(),
+  });
+
+  if (!response.ok) {
+    console.error("Vehicle lookup failed", response.status);
+    return;
+  }
+
+  const data = await response.json();
+  console.log("Vehicles from SDAS:", data);
+
+  // Populate your form controls using the returned data.
+}
+```
+
+</CodeGroup>
+
+The exact query parameters and response shape depend on how `sdas_get_vehicles` is implemented in your version of SDAS and how inventory is configured.
+
+### Example: extending sdas_get_vehicles on the server
+
+You can hook into the public AJAX action at the PHP level if you want to adjust behavior around the SDAS handler. This pattern is useful for adding extra validation or wrapping the default response.
+
+<CodeGroup tabs="PHP">
+
+```php
+<?php
+/**
+ * Example: add a wrapper around the sdas_get_vehicles AJAX action.
+ * This does not replace the core handler, but demonstrates how to hook
+ * into the same action if you need custom logic.
+ */
+
+// Run before the SDAS Forms Extension handler.
+add_action(
+    'wp_ajax_sdas_get_vehicles',
+    function () {
+        // Example: block requests missing a required header or token.
+        if ( empty( $_SERVER['HTTP_X_SITE_TOKEN'] ) ) {
+            wp_send_json_error(
+                array(
+                    'message' => 'Missing site token.',
+                ),
+                403
+            );
+        }
+
+        // Allow the original SDAS handler to proceed.
+        // Note: The core SDAS handler is already attached by the plugin bootstrap.
+    },
+    5
+);
+
+// Optionally add a late hook for logging after SDAS has processed the request.
+add_action(
+    'wp_ajax_sdas_get_vehicles',
+    function () {
+        error_log( 'sdas_get_vehicles served for IP: ' . $_SERVER['REMOTE_ADDR'] );
+    },
+    99
+);
+```
+
+</CodeGroup>
+
+When extending `sdas_get_vehicles`, avoid sending output or terminating the request before the core handler runs, unless you explicitly intend to override or short-circuit the default behavior.
+
+## File locations and loading order
+
+These are the key files involved in the integration points described above:
+
+- **Bootstrap:** `wp-content/plugins/sdas-forms-extension/sdas-forms-extension.php`  
+  Loads the plugin and registers core services, including the main plugin class.
+
+- **Form processor:** `wp-content/plugins/sdas-forms-extension/includes/Processing/FormProcessor.php`  
+  Hooks `wpforms_process_complete` and fires `sdas_lead_submitted` using `sdas_do_action_safe` when available.
+
+- **Plugin class:** `wp-content/plugins/sdas-forms-extension/includes/Plugin.php`  
+  Registers the public AJAX action `sdas_get_vehicles` for both authenticated and unauthenticated requests.
+
+When writing custom integrations, make sure your code runs **after** SDAS Forms Extension is loaded. Custom plugins that hook SDAS actions can rely on the normal WordPress `plugins_loaded` flow; adding your hooks in the main plugin file or on `init` is usually sufficient.
+
+## Related documentation
+
+Use these pages to connect SDAS Forms Extension with other parts of the system.
+
+<Columns cols={3}>
+
+<Card
+  title="Forms Extension (front end)"
+  href="/plugins/sdas-forms-extension-front-end"
+  icon="monitor"
+  cta="Build interactive lead forms"
+  horizontal="true"
+>
+
+Learn how the front-end components call `sdas_get_vehicles`, render vehicle pickers, and submit leads into SDAS.
+
+</Card>
+
+<Card
+  title="SDAS CRM Connector"
+  href="/plugins/sdas-crm-connector"
+  icon="plug"
+  cta="Sync leads to your CRM"
+  horizontal="true"
+>
+
+Connect `sdas_lead_submitted` with CRM workflows and see how SDAS CRM Connector consumes lead events.
+
+</Card>
+
+<Card
+  title="SDAS Tracking Hub"
+  href="/plugins/sdas-tracking-hub"
+  icon="activity"
+  cta="Track lead activity"
+  horizontal="true"
+>
+
+Understand how Tracking Hub records lead behavior and how it can complement your Forms Extension integrations.
+
+</Card>
+
+</Columns>

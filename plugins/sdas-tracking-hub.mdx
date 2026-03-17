@@ -1,0 +1,326 @@
+---
+title: SDAS Tracking Hub
+description: Server-side tracking hub plugin for SDAS with REST endpoint and WordPress filter hooks for page and post type classification.
+---
+
+## What the SDAS Tracking Hub plugin does
+
+SDAS Tracking Hub centralizes tracking events sent from front-end plugins and forwards them into the SDAS system for analytics and reporting.
+
+The plugin:
+
+- Registers a server-side REST endpoint for tracking events.
+- Normalizes basic context such as page type and post type.
+- Exposes WordPress filters so you can customize how page and post types are classified before events leave WordPress.
+
+Use this page when you need to integrate back-end tracking, adjust classification logic, or debug event ingestion from the front end.
+
+<Callout kind="info">
+
+Tracking Hub assumes that front-end code sends events only when consent and privacy requirements are already met. Do not include raw personally identifiable information in payloads unless your deployment and data handling policies explicitly allow it.
+
+</Callout>
+
+## Plugin bootstrap and loading
+
+The bootstrap file `wp-content/plugins/sdas-tracking-hub/sdas-tracking-hub.php` registers the plugin with WordPress and loads the core implementation from `includes/Plugin.php`.
+
+At a high level the bootstrap:
+
+- Defines plugin constants (paths, version).
+- Autoloads or includes the main plugin class.
+- Instantiates the main plugin class during the WordPress plugin load sequence.
+
+Once activated, the plugin:
+
+- Registers the REST route `POST /sdas/v1/track`.
+- Hooks its filter callbacks and any additional actions defined in `includes/Plugin.php`.
+
+## Tracking REST API: POST /sdas/v1/track
+
+The Tracking Hub exposes a single REST route implemented in `includes/API/TrackingEndpoint.php`:
+
+- **Method:** `POST`
+- **Route:** `/sdas/v1/track`
+- **Context:** WordPress REST API (namespace `sdas/v1`, route `track`)
+
+Use this endpoint from your front-end integration (for example, the Tracking Hub front-end plugin or custom JavaScript) to submit tracking events.
+
+### Request structure
+
+`TrackingEndpoint.php` expects a JSON body. Exact field names depend on how your front-end is implemented, but a typical payload includes:
+
+- An event name or type.
+- Context about the current page (page type, post type, URL).
+- Optional metadata specific to the event (for example, inventory identifiers).
+
+The plugin uses WordPress context and filters to normalize page and post type values before forwarding the event downstream.
+
+<Request tabs="cURL,JavaScript" default-tab="1" show-lines="true">
+
+```bash
+curl -X POST "https://www.example-dealer.com/wp-json/sdas/v1/track" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "vehicle_view",
+    "page": {
+      "url": "https://www.example-dealer.com/inventory/2020-ford-f-150-xlt",
+      "pageType": "vehicle_detail",
+      "postType": "vehicle"
+    },
+    "properties": {
+      "vehicleId": "veh_4f9c72b1",
+      "stockNumber": "F150-XLT-8321",
+      "price": 47995
+    }
+  }'
+```
+
+```javascript
+fetch("/wp-json/sdas/v1/track", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    event: "vehicle_view",
+    page: {
+      url: window.location.href,
+      pageType: "vehicle_detail",
+      postType: "vehicle"
+    },
+    properties: {
+      vehicleId: "veh_4f9c72b1",
+      stockNumber: "F150-XLT-8321",
+      price: 47995
+    }
+  })
+})
+  .then((res) => {
+    if (!res.ok) {
+      throw new Error("Tracking request failed");
+    }
+    return res.json();
+  })
+  .then((data) => {
+    // data structure depends on TrackingEndpoint implementation
+    console.debug("Tracking response", data);
+  })
+  .catch((error) => {
+    console.error(error);
+  });
+```
+
+</Request>
+
+<Callout kind="info">
+
+The route path in the WordPress REST API is `/wp-json/sdas/v1/track`. Use an absolute URL when sending events from non-WordPress clients or external services.
+
+</Callout>
+
+### Expected response
+
+`TrackingEndpoint.php` returns a standard WordPress REST response. The exact payload can differ by implementation, but you can typically expect:
+
+- An HTTP 2xx status code on success.
+- A JSON body that includes at least a success indicator or the stored event data.
+- WordPress-style error responses (`WP_Error`) on validation or server failures.
+
+<Response tabs="200,4xx/5xx" default-tab="1" show-lines="true">
+
+```json
+{
+  "success": true,
+  "eventId": "trk_9a7f53c2",
+  "receivedAt": "2024-05-16T14:22:37Z"
+}
+```
+
+```json
+{
+  "code": "sdas_invalid_payload",
+  "message": "Missing required field: event",
+  "data": {
+    "status": 400
+  }
+}
+```
+
+</Response>
+
+## Filter: sdas_tracking_hub_page_type
+
+Use the `sdas_tracking_hub_page_type` filter to customize or override the page type classification for tracking events.
+
+This filter is defined in `includes/Plugin.php` and typically runs when the plugin prepares event context based on the current request.
+
+### Signature
+
+The filter usually receives:
+
+- The resolved page type string (for example, `vehicle_detail`, `search_results`, `home`).
+- The current `WP_Post` object or `null`.
+- Additional context (for example, the request or route), depending on the implementation in `includes/Plugin.php`.
+
+A common pattern looks like:
+
+```php
+/**
+ * @param string $page_type  Resolved page type.
+ * @param WP_Post|null $post Current post, if available.
+ * @param array $context     Additional context for classification.
+ */
+apply_filters( 'sdas_tracking_hub_page_type', $page_type, $post, $context );
+```
+
+### Usage examples
+
+Use the filter in your theme or a custom plugin to map internal templates or conditions to SDAS page types.
+
+<CodeGroup tabs="Basic override,Conditional mapping">
+
+```php
+<?php
+// Force a custom landing page template to report as "campaign_landing".
+add_filter(
+  'sdas_tracking_hub_page_type',
+  function ( $page_type, $post, $context ) {
+    if ( isset( $post->ID ) && get_page_template_slug( $post->ID ) === 'tpl-campaign-landing.php' ) {
+      return 'campaign_landing';
+    }
+
+    return $page_type;
+  },
+  10,
+  3
+);
+```
+
+```php
+<?php
+// Map multiple internal templates into a small set of SDAS page types.
+add_filter(
+  'sdas_tracking_hub_page_type',
+  function ( $page_type, $post, $context ) {
+
+    if ( is_post_type_archive( 'vehicle' ) || is_tax( 'vehicle_category' ) ) {
+      return 'inventory_search';
+    }
+
+    if ( is_singular( 'vehicle' ) ) {
+      return 'vehicle_detail';
+    }
+
+    // Preserve the default classification for everything else.
+    return $page_type;
+  },
+  10,
+  3
+);
+```
+
+</CodeGroup>
+
+<Callout kind="info">
+
+Return the original `$page_type` value if you do not want to change the classification. The filter must always return a string; returning other types can break downstream consumers of tracking data.
+
+</Callout>
+
+## Filter: sdas_tracking_hub_post_type
+
+Use the `sdas_tracking_hub_post_type` filter to override or normalize the WordPress post type that Tracking Hub associates with an event.
+
+This filter is defined in `includes/Plugin.php` and is applied when building the event context from the current query or post.
+
+### Signature
+
+A typical call pattern is:
+
+```php
+/**
+ * @param string $post_type  Resolved WordPress post type (for example, "post", "page", "vehicle").
+ * @param WP_Post|null $post Current post, if available.
+ * @param array $context     Additional classification context.
+ */
+apply_filters( 'sdas_tracking_hub_post_type', $post_type, $post, $context );
+```
+
+### Usage examples
+
+You can use this filter to:
+
+- Collapse multiple custom post types into a shared type for analytics.
+- Map legacy post types to new ones without changing the underlying content model.
+- Handle special routing cases where the queried object does not reflect the logical content type.
+
+<CodeGroup tabs="Normalize to page,Map legacy types">
+
+```php
+<?php
+// Treat several custom landing post types as generic "page" for analytics.
+add_filter(
+  'sdas_tracking_hub_post_type',
+  function ( $post_type, $post, $context ) {
+    $landing_types = array( 'landing_page', 'promo_page', 'offer_page' );
+
+    if ( in_array( $post_type, $landing_types, true ) ) {
+      return 'page';
+    }
+
+    return $post_type;
+  },
+  10,
+  3
+);
+```
+
+```php
+<?php
+// Map a legacy post type "inventory_vehicle" to the current "vehicle" type.
+add_filter(
+  'sdas_tracking_hub_post_type',
+  function ( $post_type, $post, $context ) {
+    if ( $post_type === 'inventory_vehicle' ) {
+      return 'vehicle';
+    }
+
+    return $post_type;
+  },
+  10,
+  3
+);
+```
+
+</CodeGroup>
+
+## Integration checklist
+
+Use this quick checklist when integrating with SDAS Tracking Hub:
+
+- Confirm the plugin is installed and activated so `sdas/v1/track` is registered.
+- From the front-end, send events to `/wp-json/sdas/v1/track` with a JSON body.
+- Use `sdas_tracking_hub_page_type` to align page classifications with your analytics model.
+- Use `sdas_tracking_hub_post_type` to normalize post types where needed.
+- Verify responses from the REST endpoint and watch for WordPress REST errors during development.
+
+## Related documentation
+
+<Columns cols={2}>
+
+<Card
+  title="Tracking Hub (front end)"
+  href="/plugins/sdas-tracking-hub-front-end"
+  icon="monitor"
+  cta="View front-end integration"
+/>
+
+<Card
+  title="System overview"
+  href="/architecture/sdas-system-overview"
+  icon="layout-dashboard"
+  cta="Understand SDAS architecture"
+/>
+
+</Columns>

@@ -26,7 +26,7 @@ SDAS only emits BreadcrumbList when the URL and page context represent a canonic
 
 <Tabs>
 
-<Tab title="Vehicle detail pages (VDPs)" icon="monitor">
+  <Tab title="Vehicle detail pages (VDPs)" icon="monitor">
 
 Vehicle detail pages use BreadcrumbList to express how a specific vehicle sits inside the site hierarchy.
 
@@ -46,9 +46,9 @@ Filtered, sorted, or paged inventory archive URLs that use query strings do not 
 
 </Callout>
 
-</Tab>
+  </Tab>
 
-<Tab title="Canonical archives / collections" icon="folder">
+  <Tab title="Canonical archives / collections" icon="folder">
 
 Canonical archives and collection-like pages expose the primary structural path into a set of resources.
 
@@ -68,9 +68,9 @@ SDAS suppresses BreadcrumbList for filtered or paged query-string archive URLs a
 
 </Callout>
 
-</Tab>
+  </Tab>
 
-<Tab title="Non-collection landing pages" icon="home">
+  <Tab title="Non-collection landing pages" icon="home">
 
 Standalone landing pages that are not collections still participate in the site hierarchy and can emit BreadcrumbList.
 
@@ -84,9 +84,9 @@ Standalone landing pages that are not collections still participate in the site 
   - BreadcrumbList describes how the landing page fits into the broader navigation structure.
   - The ListItem trail usually starts from the root or a major section and ends at the current landing page.
 
-</Tab>
+  </Tab>
 
-<Tab title="Job pages" icon="users">
+  <Tab title="Job pages" icon="users">
 
 Job pages use BreadcrumbList to position individual job postings in the dealership content hierarchy.
 
@@ -106,7 +106,7 @@ SDAS suppresses BreadcrumbList for jobs that do not belong to a valid hierarchy,
 
 </Callout>
 
-</Tab>
+  </Tab>
 
 </Tabs>
 
@@ -209,7 +209,7 @@ For technical SEO and SDAS developers, the main implications of BreadcrumbList b
 
 <Columns cols={3}>
 
-  <Card title="Schema: ListItem" href="/architecture/schema-listitem" icon="list">
+  <Card title="Schema: ListItem" href="/architecture/schema-itemlist#itemlist-fields-and-structure" icon="list">
 
 Learn how individual breadcrumb entries are modeled as ListItem nodes and how positions, names, and targets are defined.
 

@@ -1,0 +1,196 @@
+---
+title: SDAS Vehicle Filters (backend)
+description: Backend reference for the SDAS Vehicle Filters plugin, including AJAX actions, hooks, and integration points with the inventory and front-end filters.
+---
+
+## Plugin responsibilities and bootstrap
+
+SDAS Vehicle Filters provides AJAX-powered filtering for vehicle inventory and passes URL and click-id context into the filter requests so you can track how users reach specific inventory views.
+
+The plugin bootstrap file is:
+
+```bash
+wp-content/plugins/sdas-vehicle-filters/sdas-vehicle-filters.php
+```
+
+This file registers the plugin, loads dependencies, and wires the public AJAX endpoints and hooks defined in `includes/AjaxHandler.php`.
+
+<Callout kind="info">
+
+SDAS Vehicle Filters does not own the inventory data. It filters and re-renders existing inventory provided by the SDAS Inventory plugin and your front-end implementation.
+
+</Callout>
+
+For front-end integration details, see the [Vehicle Filters (front end)](/plugins/sdas-vehicle-filters-front-end) guide.
+
+## Public AJAX actions
+
+The plugin exposes two AJAX actions that are registered for both authenticated and unauthenticated users.
+
+<Callout kind="info">
+
+Both actions are available as `wp_ajax_{action}` and `wp_ajax_nopriv_{action}` so they work for logged-in users and public visitors.
+
+</Callout>
+
+### `sdas_vf_filter_vehicles`
+
+Filters the vehicle inventory based on the submitted criteria and returns an updated inventory fragment together with context derived from the current URL and click identifiers.
+
+Use this action when the user changes filter controls such as make, model, price, or body style.
+
+<Callout kind="tip">
+
+Pass any necessary tracking identifiers (for example, click IDs) in the AJAX request so they can be attached to the `sdas_filters_applied` action payload.
+
+</Callout>
+
+### `sdas_vf_get_models`
+
+Returns the list of models for a given make so the front end can dynamically populate dependent filter controls.
+
+Use this action when the user selects or changes the vehicle make and you need the corresponding models without reloading the page.
+
+## Action hook: `sdas_filters_applied`
+
+When a filter request is processed in `includes/AjaxHandler.php`, the plugin fires an action so other plugins or mu-plugins can react to the applied filters and resulting inventory.
+
+The hook signature is:
+
+```php
+do_action(
+    'sdas_filters_applied',
+    [
+        'filters'         => ...,
+        'result_count'    => ...,
+        'click_ids'       => ...,
+        'target_selector' => ...,
+    ]
+);
+```
+
+The payload is a single associative array with these keys:
+
+<ParamField body="filters" param-type="array" required="true" show-location="false">
+
+Normalized filter values applied to the inventory query. The exact structure matches what the filters front end and inventory layer agree on.
+
+</ParamField>
+
+<ParamField body="result_count" param-type="int" required="true" show-location="false">
+
+Total number of vehicles returned by the filtered query.
+
+</ParamField>
+
+<ParamField body="click_ids" param-type="array" show-location="false">
+
+One or more tracking identifiers associated with the current request, typically derived from URL parameters or data attributes on the clicked element.
+
+</ParamField>
+
+<ParamField body="target_selector" param-type="string" show-location="false">
+
+CSS selector for the DOM container that the front end updates with the filtered inventory markup.
+
+</ParamField>
+
+<Callout kind="info">
+
+The hook provides full context for analytics and tracking: what filters were applied, how many results were shown, which click IDs were involved, and which part of the page was updated.
+
+</Callout>
+
+## Listen to `sdas_filters_applied`
+
+Hook into `sdas_filters_applied` to log filter usage, send events to external systems, or adjust downstream behavior based on the applied filters and results.
+
+<CodeGroup tabs="PHP">
+
+```php
+<?php
+// mu-plugins/sdas-filters-listener.php or inside a custom plugin.
+
+add_action( 'sdas_filters_applied', function ( array $context ) {
+    // Expected keys:
+    // - filters (array)
+    // - result_count (int)
+    // - click_ids (array)
+    // - target_selector (string)
+
+    $filters         = isset( $context['filters'] ) ? $context['filters'] : [];
+    $result_count    = isset( $context['result_count'] ) ? (int) $context['result_count'] : 0;
+    $click_ids       = isset( $context['click_ids'] ) ? (array) $context['click_ids'] : [];
+    $target_selector = isset( $context['target_selector'] ) ? (string) $context['target_selector'] : '.sdas-inventory';
+
+    // Example: write a log entry for analytics debugging.
+    error_log(
+        sprintf(
+            'SDAS filters applied: %d results, selector "%s", click IDs: %s, filters: %s',
+            $result_count,
+            $target_selector,
+            json_encode( $click_ids ),
+            json_encode( $filters )
+        )
+    );
+
+    // Example: forward an event to a custom tracking function.
+    if ( function_exists( 'sdas_tracking_record_filters' ) ) {
+        sdas_tracking_record_filters(
+            $filters,
+            $result_count,
+            $click_ids,
+            $target_selector
+        );
+    }
+} );
+```
+
+</CodeGroup>
+
+After you add this listener and trigger a filter change on the front end, you should see matching entries in your PHP error log or in whatever tracking sink you implement.
+
+<Callout kind="tip">
+
+Keep the callback lightweight. For slow or external operations, enqueue a background task or use a queue system so the AJAX response remains fast.
+
+</Callout>
+
+## Related documentation
+
+<Columns cols={3}>
+
+<Card
+  title="Vehicle Filters (front end)"
+  href="/plugins/sdas-vehicle-filters-front-end"
+  icon="monitor"
+  cta="Wire up the filter UI"
+>
+
+Learn how the front-end filter controls call the AJAX actions documented on this page and how the DOM updates when filters change.
+
+</Card>
+
+<Card
+  title="Inventory (front end)"
+  href="/plugins/sdas-inventory-front-end"
+  icon="layout-grid"
+  cta="Control inventory rendering"
+>
+
+See how the inventory grid and list views are rendered and updated in response to filter requests.
+
+</Card>
+
+<Card
+  title="SDAS system overview"
+  href="/architecture/sdas-system-overview"
+  icon="layout-dashboard"
+  cta="Understand the big picture"
+>
+
+Review how SDAS Core, Inventory, Vehicle Filters, and other plugins work together across back end and front end.
+
+</Card>
+
+</Columns>
