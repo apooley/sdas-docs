@@ -36,6 +36,62 @@
             ]
           },
           {
+            "group": "Schema",
+            "icon": "braces",
+            "pages": [
+              {
+                "title": "Schema: WebSite",
+                "path": "architecture/schema-website",
+                "icon": "globe"
+              },
+              {
+                "title": "Schema: AutoDealer",
+                "path": "architecture/schema-autodealer",
+                "icon": "building-2"
+              },
+              {
+                "title": "Schema: WebPage",
+                "path": "architecture/schema-webpage",
+                "icon": "monitor"
+              },
+              {
+                "title": "Schema: BreadcrumbList",
+                "path": "architecture/schema-breadcrumblist",
+                "icon": "chevron-right"
+              },
+              {
+                "title": "Schema: CollectionPage",
+                "path": "architecture/schema-collectionpage",
+                "icon": "folder"
+              },
+              {
+                "title": "Schema: ItemList",
+                "path": "architecture/schema-itemlist",
+                "icon": "list"
+              },
+              {
+                "title": "Schema: Vehicle",
+                "path": "architecture/schema-vehicle",
+                "icon": "car"
+              },
+              {
+                "title": "Schema: Offer",
+                "path": "architecture/schema-offer",
+                "icon": "tag"
+              },
+              {
+                "title": "Schema: ImageObject",
+                "path": "architecture/schema-imageobject",
+                "icon": "image"
+              },
+              {
+                "title": "Schema: JobPosting",
+                "path": "architecture/schema-jobposting",
+                "icon": "briefcase"
+              }
+            ]
+          },
+          {
             "group": "Core",
             "icon": "shield",
             "pages": [

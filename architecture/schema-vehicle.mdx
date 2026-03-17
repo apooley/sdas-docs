@@ -1,0 +1,147 @@
+---
+title: Schema: Vehicle
+description: Schema.org Vehicle node emitted by SDAS to describe an inventory vehicle on public VDP pages, with fields, relationships, and suppression rules.
+---
+
+## Vehicle schema overview
+
+Vehicle schema describes the specific inventory vehicle on a public single `sdas_vehicle` vehicle detail page (VDP). SDAS emits a Schema.org `Vehicle` node for eligible vehicles so search engines can understand key attributes like make, model, year, and mileage.
+
+The SDAS Inventory plugin owns Vehicle schema generation and injects it from the front end via the `wp_head` hook.
+
+## Where Vehicle is emitted
+
+Vehicle schema is only emitted on public single vehicle detail pages that meet SDAS eligibility rules.
+
+Key characteristics:
+
+- **Page types/URLs**: Public single `sdas_vehicle` pages (VDPs) only.
+- **Owning plugin**: `sdas-inventory`.
+- **Output hook**: `wp_head` on the rendered VDP.
+
+<Callout kind="info">
+
+SDAS suppresses Vehicle schema on non-VDP requests and in non-canonical or preview-like contexts. Only eligible, published `sdas_vehicle` VDPs with sufficient graph data output a `Vehicle` node.
+
+</Callout>
+
+## Eligibility and suppression
+
+SDAS applies a consistent suppression strategy so Vehicle schema only appears where it is valid and unambiguous.
+
+Vehicle schema is **eligible** when:
+
+- The request resolves to a **single `sdas_vehicle` post**.
+- The vehicle is **published**, not draft or private.
+- SDAS has **sufficient graph data** to describe the vehicle (for example, VIN or stock or equivalent identifiers and core attributes).
+- The request targets the **canonical VDP URL**.
+
+Vehicle schema is **suppressed** when:
+
+- The request is for **admin, feed, AJAX, or REST** endpoints.
+- The request is **preview-like** (for example, preview, customizer, non-public, or otherwise non-canonical).
+- The request does not resolve to a single `sdas_vehicle` post.
+- The permalink or underlying graph is **invalid for the vehicle** (for example, missing required identifiers).
+
+This mirrors the broader schema suppression behavior in SDAS, where inventory archive schema and other nodes are tightly scoped to canonical, public-facing pages only.
+
+## Vehicle properties exposed by SDAS
+
+The Vehicle node focuses on core, crawlable attributes that describe a single inventory unit. SDAS does not attempt to emit every possible Schema.org Vehicle property, only those covered in the inventory graph.
+
+### Core identification and linking
+
+These properties identify the vehicle and connect the schema to the page URL and internal graph:
+
+- **`@id`** — Canonical identifier for the vehicle node, typically using the VDP permalink with a `#vehicle` fragment.
+- **`url`** — Canonical VDP URL for the vehicle.
+- **`name`** — Human-readable vehicle name or title used on the page (often year + make + model).
+- **`brand`** — Vehicle brand or manufacturer.
+- **`model`** — Model name of the vehicle.
+- **`year`** — Model year for the vehicle.
+
+The `@id` provides a stable anchor for other nodes (for example, `Offer`) to reference the same vehicle in the graph.
+
+### Descriptive attributes
+
+These properties characterize the configuration and visual aspects of the vehicle:
+
+- **`color`** — Exterior color that appears in inventory data.
+- **`body`** — Body style description (for example, sedan, SUV, pickup).
+- **`fuel`** — Fuel type (for example, gasoline, diesel, hybrid, electric), as represented in SDAS inventory.
+- **`trim`** — Trim level or package name where available.
+- **`transmission`** — Transmission description (for example, automatic, manual, CVT).
+- **`drivetrain`** — Drivetrain configuration (for example, FWD, RWD, AWD, 4WD).
+
+These values map directly from the SDAS inventory plugin’s normalized vehicle data where present.
+
+### Mileage and usage
+
+Mileage helps distinguish new and used inventory as well as relative usage:
+
+- **`mileage`** — Odometer value (units and formatting follow SDAS inventory conventions).
+
+SDAS only outputs mileage when the underlying graph contains a valid, non-empty mileage value for the vehicle.
+
+## Optional relationships: Offer and ImageObject
+
+Vehicle schema can participate in optional relationships that describe pricing and media. SDAS only emits these when the corresponding graph data exists.
+
+### Offer relationship
+
+When a vehicle has an associated offer (for example, a primary retail listing), SDAS may expose a relationship from the Vehicle node to an `Offer` node.
+
+Typical patterns:
+
+- Vehicle `offers` references one or more `Offer` nodes.
+- Offer nodes describe pricing, availability, and related commercial metadata.
+
+Refer to the [Schema: Offer](/architecture/schema-offer) page for the exact Offer shape and how SDAS structures offer-level data.
+
+### ImageObject relationship
+
+When the vehicle has one or more images in the inventory graph, SDAS may output image relationships:
+
+- Vehicle `image` references one or more `ImageObject` nodes.
+- ImageObject nodes describe canonical image URLs and basic metadata.
+
+See [Schema: ImageObject](/architecture/schema-imageobject) for details on how SDAS builds image nodes and links them into the graph.
+
+## Example Vehicle JSON-LD fragment
+
+The example below shows a simplified `Vehicle` node as SDAS might output on an eligible VDP. This is not exhaustive, but it illustrates the structure and representative fields.
+
+<CodeGroup tabs="JSON-LD">
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Vehicle",
+  "@id": "https://www.dealer-site.com/inventory/2021-toyota-rav4-xle-2t3w1rfv1mw102345/#vehicle",
+  "url": "https://www.dealer-site.com/inventory/2021-toyota-rav4-xle-2t3w1rfv1mw102345/",
+  "name": "2021 Toyota RAV4 XLE",
+  "brand": "Toyota",
+  "model": "RAV4",
+  "year": 2021,
+  "color": "Magnetic Gray Metallic",
+  "body": "SUV",
+  "fuel": "Gasoline",
+  "trim": "XLE",
+  "transmission": "8-speed automatic",
+  "drivetrain": "AWD",
+  "mileage": 18450
+}
+```
+
+</CodeGroup>
+
+Use this fragment as a mental model for what SDAS emits on an eligible VDP. Actual key names and exact values come directly from the inventory graph and may vary by data source.
+
+## Related nodes
+
+Vehicle schema participates in a broader schema graph that SDAS emits on VDP pages. Review these related nodes to understand how Vehicle is embedded in the overall structure:
+
+- **[Schema: WebPage](/architecture/schema-webpage)** — Describes the VDP as a web document; typically references the Vehicle node as its primary content.
+- **[Schema: Offer](/architecture/schema-offer)** — Captures pricing and availability for the inventory unit, often linked from `Vehicle.offers`.
+- **[Schema: ImageObject](/architecture/schema-imageobject)** — Represents canonical vehicle photos referenced from the Vehicle `image` property.
+- **[Schema: BreadcrumbList](/architecture/schema-breadcrumblist)** — Models the navigation path that leads to the VDP where the Vehicle node is rendered.

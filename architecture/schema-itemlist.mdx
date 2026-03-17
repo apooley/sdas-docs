@@ -1,0 +1,170 @@
+---
+title: Schema: ItemList
+description: Schema.org ItemList emitted for the ordered vehicle list on canonical inventory pages, with fields, behavior, and suppression rules.
+---
+
+## What ItemList represents in SDAS
+
+Schema.org `ItemList` models the ordered list of vehicles on canonical inventory pages so search engines understand the collection and each vehicle's position.
+
+SDAS emits this node only for canonical inventory collections and always as a companion to the vehicle collection view.
+
+## Where ItemList is emitted
+
+SDAS generates `ItemList` for:
+
+- **Bare first `sdas_vehicle` archive**  
+  The unfiltered, unpaged archive that represents the canonical collection of vehicles.
+- **Public `sdas_landing_page` with canonical vehicle collection**  
+  Landing pages designated as the canonical collection URL for a specific inventory.
+
+The **owning plugin** is `sdas-inventory`, and SDAS attaches the JSON-LD script via the **`wp_footer`** hook so it appears on the rendered front-end page.
+
+<Callout kind="info">
+
+ItemList is **canonical-only**:
+
+- SDAS emits `ItemList` only when the page represents the **canonical vehicle collection**.
+- SDAS suppresses `ItemList` anywhere the collection is **filtered, sorted, paginated, mixed**, or otherwise non-canonical.
+- SDAS also suppresses `ItemList` on **admin, feeds, AJAX, REST responses, and page-builder previews**.
+
+This keeps list semantics stable and avoids conflicting signals for search engines.
+
+</Callout>
+
+## How the ItemList is built
+
+SDAS does not scan the DOM to guess list membership. Instead, `ItemList` pulls from an internal registry of rendered vehicles on the page.
+
+SDAS builds the list from **registered rendered vehicle IDs** with these guarantees:
+
+- **Published only**  
+  Only vehicles that are in a published state are eligible.
+- **De-duplicated**  
+  If a vehicle renders more than once on a page, SDAS includes it once in the list.
+- **Order-preserved**  
+  The order of items in `ItemList` matches the order they appear in the rendered collection.
+
+If no vehicles are eligible, SDAS emits an `ItemList` with an **empty `itemListElement` array**, leaving the node in place but without entries.
+
+## ItemList fields and structure
+
+The emitted JSON-LD `ItemList` has a stable shape that technical SEO and developers can rely on.
+
+At the top level, SDAS sets:
+
+- **`@id`**  
+  A stable identifier for the list, using a fragment such as `#itemlist`. This anchors related references on the same page.
+- **`itemListOrder`**  
+  Indicates that the list is ordered. SDAS aligns this with the visual order of vehicles on the canonical collection.
+- **`numberOfItems`**  
+  The count of vehicles included in `itemListElement` after de-duplication and eligibility checks.
+- **`itemListElement`**  
+  An ordered array of `ListItem` nodes, one per vehicle in the canonical list view.
+
+Each `ListItem` entry contains:
+
+- **`position`**  
+  A 1-based index that matches the vehicle's order in the canonical collection.
+- **`url`**  
+  The canonical URL for the vehicle detail page.
+- **`name`**  
+  The vehicle's display name, matching the public-facing title on the site.
+
+## Example ItemList JSON-LD
+
+This example shows the simplified structure of the `ItemList` node and a few `ListItem` entries as SDAS would emit them on a canonical inventory page.
+
+<CodeGroup tabs="JSON-LD">
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "@id": "https://dealer-website.com/inventory#itemlist",
+  "itemListOrder": "http://schema.org/ItemListOrderAscending",
+  "numberOfItems": 3,
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "url": "https://dealer-website.com/vehicles/2019-toyota-rav4-xle-awd",
+      "name": "2019 Toyota RAV4 XLE AWD"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "url": "https://dealer-website.com/vehicles/2020-honda-crv-ex-awd",
+      "name": "2020 Honda CR-V EX AWD"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "url": "https://dealer-website.com/vehicles/2021-subaru-forester-premium-awd",
+      "name": "2021 Subaru Forester Premium AWD"
+    }
+  ]
+}
+```
+
+</CodeGroup>
+
+Use this as a reference for:
+
+- Verifying that `@id` uses the expected `#itemlist` fragment.
+- Confirming that `numberOfItems` matches the length of `itemListElement`.
+- Checking that `position` values are contiguous and align with the visible order.
+
+## Suppression and edge cases
+
+SDAS intentionally avoids emitting `ItemList` in contexts where the collection is unstable or partial.
+
+SDAS suppresses `ItemList` when:
+
+- The inventory view is **filtered**, **sorted**, **paginated**, or **mixed** (for example, multiple collections on one page).
+- The request targets **admin screens**, **feeds**, **AJAX endpoints**, or **REST API responses**.
+- The page is a **page-builder preview** (for example, Breakdance or similar tools) rather than a public URL.
+
+In these cases, SDAS either emits no `ItemList` or ensures the JSON-LD block is absent from the response attached to `wp_footer`.
+
+When there are **zero eligible vehicles** on an otherwise canonical collection, SDAS keeps the `ItemList` node but sets:
+
+- `numberOfItems` to `0`
+- `itemListElement` to an empty array
+
+This preserves a stable identifier and semantics even when the inventory is temporarily empty.
+
+## How ItemList relates to other schema nodes
+
+ItemList is part of a broader schema model for inventory collections in SDAS.
+
+- The **collection page itself** is described by `CollectionPage` and related nodes.
+- Each **vehicle** in `itemListElement` is represented as a `ListItem` that points to the vehicle detail page and its own schema graph.
+
+Explore the related nodes for full context:
+
+<Columns cols={2}>
+
+<Card
+  title="Schema: CollectionPage"
+  href="/architecture/schema-collectionpage"
+  icon="book-open"
+  cta="View CollectionPage schema"
+>
+
+How SDAS models the canonical inventory collection page and its relationship to ItemList.
+
+</Card>
+
+<Card
+  title="Schema: ListItem"
+  href="/architecture/schema-listitem"
+  icon="list-filter"
+  cta="View ListItem schema"
+>
+
+Fields and behavior for the ListItem nodes that ItemList uses for each vehicle.
+
+</Card>
+
+</Columns>

@@ -1,0 +1,187 @@
+---
+title: Schema: CollectionPage
+description: Canonical inventory collection pages emit a CollectionPage node whose mainEntity is an ItemList representing the primary vehicle collection.
+---
+
+## What CollectionPage represents in SDAS
+
+CollectionPage schema marks stable, canonical inventory collection pages so search engines can understand the primary vehicle listings on the site.
+
+SDAS emits a CollectionPage node only for the canonical inventory collection, and only when that collection can be resolved without filters, sorting, or pagination.
+
+## Where CollectionPage is emitted
+
+CollectionPage comes from the `sdas-inventory` plugin and is attached late in page rendering.
+
+- **Owning plugin**: `sdas-inventory`
+- **Output hook**: `wp_footer`
+- **Primary purpose**: Signal the stable, canonical vehicle collection page for SEO and discovery.
+
+SDAS emits a CollectionPage node in these cases:
+
+- **Bare first `sdas_vehicle` archive**
+  - The unfiltered, unpaged archive for SDAS vehicles.
+  - No query arguments, no pagination segments.
+- **Public `sdas_landing_page` with canonical vehicle collection**
+  - A landing page that resolves a single, canonical vehicle collection.
+  - Used for public-facing inventory landings where a primary collection is clearly defined.
+
+In both cases, the page must represent the primary vehicle collection for the site or dealer, not a filtered subset.
+
+<Callout kind="info">
+
+CollectionPage is **canonical-only**. SDAS uses it to describe the one stable inventory collection page, not every URL that happens to show vehicles.
+
+</Callout>
+
+## Eligibility and suppression rules
+
+CollectionPage has strict eligibility rules to keep schema focused on stable URLs and avoid polluting search with transient filtered views.
+
+### When CollectionPage is eligible
+
+A page can emit CollectionPage only when:
+
+- **Request is canonical**
+  - No query-string filters or sorting parameters.
+  - Not a paged or offset view.
+  - No mixed or special-case inventory queries.
+- **Collection resolves as canonical**
+  - SDAS can identify a single, primary vehicle collection for the request.
+  - The page is not a preview, admin, or API context.
+
+If either condition fails, SDAS suppresses CollectionPage for that request.
+
+### When CollectionPage is suppressed
+
+SDAS intentionally stays schema-silent for non-canonical or transient contexts.
+
+CollectionPage is **not** emitted for:
+
+- **Filtered, sorted, paged, or mixed inventory states**
+  - Query-string filters (make/model/body, price, etc.).
+  - Sort parameters (price, mileage, date).
+  - Paginated URLs or offset-based archives.
+  - Mixed inventory combinations that are not the primary collection.
+- **Non-front-end or non-HTML contexts**
+  - Admin screens.
+  - Feeds.
+  - AJAX inventory/filter responses.
+  - REST API responses.
+- **Other page types and previews**
+  - Vehicle details pages (VDP).
+  - Breakdance previews.
+  - Non-canonical landing pages that do not resolve a primary collection.
+
+<Callout kind="info">
+
+Schema for inventory collections is **restricted by design**. Filtered, sorted, paged, and AJAX inventory URLs do **not** emit collection schema of any kind.
+
+</Callout>
+
+## How CollectionPage is structured
+
+The CollectionPage node describes the page itself and then delegates the actual list of vehicles to an ItemList via `mainEntity`.
+
+Key structural points:
+
+- **`@id`** identifies the page-level WebPage/CollectionPage node.
+- **`url`**, `name`, and `description` describe the inventory collection page.
+- **`isPartOf`** links the page to the Site-level `WebSite` node.
+- **`mainEntity`** points to an `ItemList` node representing the canonical vehicle collection.
+
+This separation keeps page-level metadata (CollectionPage) distinct from the list of vehicles (ItemList) while still tying them together.
+
+### Simplified JSON-LD fragment
+
+The example below shows the relationship between CollectionPage, WebSite, and ItemList. Field values are illustrative; SDAS populates them dynamically from the actual site and inventory.
+
+<CodeGroup tabs="JSON-LD">
+
+```json
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://www.contoso-motors.com/#website",
+      "url": "https://www.contoso-motors.com/",
+      "name": "Contoso Motors"
+    },
+    {
+      "@type": "CollectionPage",
+      "@id": "https://www.contoso-motors.com/vehicles/#webpage",
+      "url": "https://www.contoso-motors.com/vehicles/",
+      "name": "All Vehicles",
+      "description": "Browse all new and used vehicles available at Contoso Motors.",
+      "isPartOf": {
+        "@id": "https://www.contoso-motors.com/#website"
+      },
+      "mainEntity": {
+        "@id": "https://www.contoso-motors.com/vehicles/#itemlist"
+      }
+    },
+    {
+      "@type": "ItemList",
+      "@id": "https://www.contoso-motors.com/vehicles/#itemlist",
+      "itemListElement": [
+        {
+          "@type": "Product",
+          "@id": "https://www.contoso-motors.com/vehicles/2023-ford-f150-xlt/"
+        },
+        {
+          "@type": "Product",
+          "@id": "https://www.contoso-motors.com/vehicles/2022-honda-crv-ex/"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</CodeGroup>
+
+Use this fragment as a mental model:
+
+- The **CollectionPage node** describes the canonical inventory page.
+- The **ItemList node** represents the canonical set of vehicles at that URL.
+- The **WebSite node** anchors the page within the overall site.
+
+## Implementation notes for developers
+
+When working on SDAS or integrating inventory-front-end behavior, keep these principles in mind:
+
+- **Do not expand CollectionPage to filtered states**
+  - If you add new filters, sorting modes, or query parameters, they must not cause CollectionPage to emit on those URLs.
+  - Treat filtered URLs as schema-silent for collection-level schema, even if they share a template with the canonical archive.
+- **Keep the primary collection stable**
+  - The bare first `sdas_vehicle` archive and canonical `sdas_landing_page` should reflect a stable inventory set.
+  - Large structural changes to inventory routing should preserve a single, clearly canonical collection URL per dealer/site.
+- **Coordinate with ItemList**
+  - Any changes to how the canonical collection is built should be mirrored in the ItemList logic.
+  - The `mainEntity` link from CollectionPage must always point to the canonical ItemList for that page.
+- **Respect non-front-end contexts**
+  - When you introduce new AJAX endpoints, REST routes, or admin tools around inventory, keep them schema-silent.
+  - Only the full HTML page render in the front end (via `wp_footer`) should emit CollectionPage.
+
+## Related nodes
+
+Use these pages to understand how CollectionPage relates to other schema nodes in SDAS.
+
+<Columns cols={2}>
+
+<Card
+  title="Schema: ItemList"
+  href="/architecture/schema-itemlist"
+  icon="list-filter"
+  cta="View ItemList schema"
+/>
+
+<Card
+  title="Schema: BreadcrumbList"
+  href="/architecture/schema-breadcrumblist"
+  icon="chevron-right"
+  cta="View BreadcrumbList schema"
+/>
+
+</Columns>

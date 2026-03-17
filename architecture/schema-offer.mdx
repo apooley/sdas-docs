@@ -1,0 +1,107 @@
+---
+title: Schema: Offer
+description: Schema.org Offer node for vehicle pricing and availability, emitted on SDAS VDPs and linked to the shared AutoDealer seller node.
+---
+
+## Offer node overview
+
+Offer represents the listing price and availability for a single vehicle detail page and links that offer to the dealership seller node.
+
+Offer is optional and only appears when SDAS has a valid, normalized price for the vehicle.
+
+## Where Offer is emitted
+
+Offer currently appears only on eligible vehicle detail pages and is owned by the inventory stack.
+
+- **Page types / URLs**: Public single `sdas_vehicle` pages (vehicle detail pages, VDPs)
+- **Owning plugin**: `sdas-inventory`
+- **Output hook**: `wp_head` (injected into the page head as JSON-LD)
+
+Each eligible VDP shares a canonical ID pattern across related nodes, including the Offer node.
+
+<Callout kind="info">
+
+Offer is **optional**. SDAS only emits Offer when `_sdas_price` is present and valid. The price value is normalized from a whole-dollar amount to a decimal (for example, `25999` → `25999.00`). SDAS omits the Offer node entirely when price data is missing or invalid.
+
+</Callout>
+
+## Eligibility and suppression
+
+Offer emission depends entirely on pricing data quality for a given vehicle.
+
+Offer emits when:
+
+- The page is a public single `sdas_vehicle` VDP.
+- `_sdas_price` exists for the vehicle and passes validation.
+- SDAS can normalize the price to a decimal currency value.
+
+SDAS suppresses Offer when:
+
+- The vehicle has no `_sdas_price` meta.
+- `_sdas_price` is present but invalid or cannot be normalized.
+- The page is not an eligible VDP (archive, search, or non-vehicle pages).
+
+Offer still emits for sold units; SDAS marks those as out of stock rather than removing the node.
+
+## Key Offer fields
+
+Offer exposes core pricing and availability fields plus a seller link to the shared AutoDealer node.
+
+- `@id` — Canonical node identifier for the Offer, derived from the vehicle permalink with a `#offer` fragment (for example, `https://dealer.example.com/used/ford-f150/#offer`).
+- `price` — Normalized vehicle price expressed as a decimal currency value. SDAS converts stored whole-dollar values to decimals before output.
+- `priceCurrency` — ISO 4217 currency code associated with `price` (for example, `USD`).
+- `availability` — Schema.org availability status. For sold vehicles, SDAS emits an out-of-stock value (for example, `https://schema.org/OutOfStock`) instead of removing the Offer node.
+- `itemCondition` — Condition of the vehicle. SDAS emits a used-vehicle condition value (for example, `https://schema.org/UsedCondition`).
+- `seller` — Reference to the shared AutoDealer organization node. SDAS sets `seller` to an `AutoDealer` with an `@id` that points to the global organization node at the site home URL with `#organization` (for example, `https://dealer.example.com/#organization`).
+- `url` — Canonical URL of the VDP where the Offer applies (for example, `https://dealer.example.com/used/ford-f150/`).
+
+## JSON-LD structure example
+
+The following example shows a simplified Offer fragment as emitted on an eligible VDP. The actual output also includes the linked vehicle, WebPage, and organization nodes.
+
+<CodeGroup tabs="JSON-LD">
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Offer",
+  "@id": "https://dealer.autosite.com/inventory/used-2021-ford-f150-lariat/#offer",
+  "price": 42995.00,
+  "priceCurrency": "USD",
+  "availability": "https://schema.org/OutOfStock",
+  "itemCondition": "https://schema.org/UsedCondition",
+  "seller": {
+    "@id": "https://dealer.autosite.com/#organization"
+  },
+  "url": "https://dealer.autosite.com/inventory/used-2021-ford-f150-lariat/"
+}
+```
+
+</CodeGroup>
+
+When Offer is suppressed for a given vehicle, this JSON-LD block is omitted from `wp_head` entirely; SDAS does not emit a partial or empty Offer node.
+
+## Relationship to other schema nodes
+
+Offer participates in a set of linked nodes that describe a VDP:
+
+- It shares a canonical ID pattern with the vehicle, webpage, image, and breadcrumb nodes derived from the vehicle permalink.
+- It points to the shared AutoDealer organization node instead of repeating dealership details locally.
+
+<Columns cols={2}>
+
+<Card
+  title="Vehicle node (item being sold)"
+  href="/architecture/schema-vehicle"
+  icon="car"
+  cta="View Vehicle schema"
+/>
+
+<Card
+  title="AutoDealer node (seller organization)"
+  href="/architecture/schema-autodealer"
+  icon="users"
+  cta="View AutoDealer schema"
+/>
+
+</Columns>

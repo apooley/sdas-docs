@@ -1,0 +1,117 @@
+---
+title: Schema: ImageObject
+description: Schema.org ImageObject representing the primary vehicle image on eligible vehicle detail pages, including fields, eligibility, and JSON-LD shape.
+---
+
+## Purpose
+
+ImageObject represents the primary vehicle image for a vehicle detail page (VDP) in Schema.org JSON-LD.
+
+Search engines use this node to understand which image is canonical for the vehicle and to connect it to the WebPage that displays it. SDAS emits ImageObject as a separate node and links it from the page-level WebPage node as the `primaryImageOfPage`.
+
+<Callout kind="info">
+
+SDAS only ever emits ImageObject for vehicle detail pages, and only when a primary vehicle image exists. WebPage nodes never point to a non-existent ImageObject.
+
+</Callout>
+
+## Where ImageObject is exposed
+
+ImageObject is only emitted for a narrow, SEO-relevant slice of the site.
+
+- **Page types / URLs**: Public single `sdas_vehicle` pages (vehicle detail pages / VDPs) that are eligible for schema.
+- **Owning plugin**: `sdas-inventory` is responsible for assembling and outputting the ImageObject node.
+- **Output hook**: Emitted in the page head via the standard WordPress `wp_head` hook as part of the JSON-LD graph.
+
+This keeps the ImageObject tied to the inventory system and ensures it is only present where vehicle context is available.
+
+## What ImageObject exposes
+
+The ImageObject node exposes only a minimal, stable set of properties:
+
+- **`@type`** — Always `"ImageObject"`.
+- **`@id`** — Canonical node ID derived from the vehicle permalink, using the `#primaryimage` fragment. For example, a VDP `https://dealer.example.com/vehicles/2022-ford-f150` produces `https://dealer.example.com/vehicles/2022-ford-f150#primaryimage`.
+- **`contentUrl`** — Resolved primary image URL for the vehicle, taken from `sdas_get_vehicle_featured_image()`.
+
+The ImageObject is then linked from the WebPage node via `primaryImageOfPage`, which always references the emitted ImageObject by its `@id`.
+
+## Eligibility and suppression
+
+ImageObject emission is intentionally conservative:
+
+- **Optional node**: SDAS omits ImageObject entirely when there is no resolvable primary image.
+- **Primary image resolution**: SDAS calls `sdas_get_vehicle_featured_image()` for the current vehicle.
+  - If the function returns a usable URL, SDAS emits:
+    - An ImageObject node with `@id` and `contentUrl`.
+    - A corresponding `WebPage.primaryImageOfPage` reference to that `@id`.
+  - If the function does not return a URL (no image, missing media, or configuration), SDAS:
+    - Skips the ImageObject node.
+    - Skips `WebPage.primaryImageOfPage` to avoid dangling references.
+
+<Callout kind="tip">
+
+If you need ImageObject for SEO on a given VDP, ensure `sdas_get_vehicle_featured_image()` can resolve a primary image in your theme or integration.
+
+</Callout>
+
+## Simplified JSON-LD example
+
+This example shows a minimal JSON-LD graph for a single VDP with WebPage and ImageObject nodes. It highlights the `#primaryimage` ID pattern and the `primaryImageOfPage` link.
+
+<CodeGroup tabs="JSON-LD">
+
+```json
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": "https://dealer.autosite.com/vehicles/2022-ford-f150-lariat#webpage",
+      "url": "https://dealer.autosite.com/vehicles/2022-ford-f150-lariat",
+      "name": "2022 Ford F‑150 Lariat for sale in Seattle",
+      "primaryImageOfPage": {
+        "@id": "https://dealer.autosite.com/vehicles/2022-ford-f150-lariat#primaryimage"
+      }
+    },
+    {
+      "@type": "ImageObject",
+      "@id": "https://dealer.autosite.com/vehicles/2022-ford-f150-lariat#primaryimage",
+      "contentUrl": "https://images.autosite-cdn.com/inventory/ford/f150/2022/vin-1FTFW1E89NFA12345/front-three-quarter.jpg"
+    }
+  ]
+}
+```
+
+</CodeGroup>
+
+Key points from this example:
+
+- The WebPage, Vehicle, Offer, breadcrumb, and ImageObject nodes each use a stable fragment on the same VDP permalink (for ImageObject, `#primaryimage`).
+- The WebPage node references the ImageObject by `@id` using `primaryImageOfPage`, ensuring a clean, resolvable link without duplicating image details on the WebPage itself.
+
+## Related nodes
+
+ImageObject participates in a small, consistent set of nodes on a VDP.
+
+<Columns cols={2}>
+
+<Card
+  title="Schema: Vehicle"
+  href="/architecture/schema-vehicle"
+  icon="database"
+  cta="View vehicle node"
+/>
+
+<Card
+  title="Schema: WebPage"
+  href="/architecture/schema-webpage"
+  icon="monitor"
+  cta="View page node"
+/>
+
+</Columns>
+
+- **WebPage**: References ImageObject via `primaryImageOfPage`. WebPage shares the same canonical permalink base, with a `#webpage` fragment for its `@id`.
+- **Vehicle**: Represents the underlying `sdas_vehicle` entity on the same VDP and uses the `#vehicle` fragment in its `@id`.
+
+Together, these nodes form the core graph for a vehicle detail page, with ImageObject providing the canonical primary image reference.

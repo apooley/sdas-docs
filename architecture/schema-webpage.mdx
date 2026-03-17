@@ -1,0 +1,196 @@
+---
+title: Schema: WebPage
+description: Per-page Schema.org WebPage node emitted by SDAS to connect individual pages to the site WebSite and their mainEntity.
+---
+
+## What the WebPage node represents
+
+SDAS emits a Schema.org `WebPage` node as the per-page container that links the current URL to the site-level `WebSite` node and to the page's primary `mainEntity`.
+
+For SDAS, `WebPage` appears on multiple front-end content types:
+
+- Vehicle detail pages built from `sdas_vehicle` (VDPs)
+- Landing pages built from `sdas_landing_page` that do not resolve to a canonical collection
+- Job pages built from `sdas_job`
+
+On all of these, the `WebPage` node:
+
+- Identifies the canonical page via its `@id` (the permalink with `#webpage`)
+- Exposes basic page metadata (URL, name, description)
+- Declares the parent `WebSite` via `isPartOf`
+- Points to the primary business entity for the page via `mainEntity`
+- Optionally exposes `primaryImageOfPage` when a clear hero image exists
+
+## Where WebPage is emitted
+
+SDAS scopes `WebPage` to public, front-end requests for specific single resources rather than all URLs.
+
+<Tabs>
+
+<Tab title="Vehicle detail (sdas_vehicle)" icon="monitor">
+
+Vehicle detail pages for individual inventory items emit `WebPage` when SDAS treats the request as a public VDP.
+
+Contexts for vehicle detail:
+
+- **Page type / URL**
+  - Public single `sdas_vehicle` pages (vehicle detail pages or VDPs)
+- **Owning plugin**
+  - `sdas-inventory`
+- **Output hooks**
+  - `wp_head` for JSON-LD output
+- **Emission behavior**
+  - The `WebPage` node represents the vehicle detail URL
+  - `mainEntity` typically points to the inventory `Vehicle` or equivalent entity node
+
+</Tab>
+
+<Tab title="Landing page (sdas_landing_page)" icon="folder">
+
+Landing pages use `WebPage` when they do not resolve to a canonical inventory collection. When SDAS can map a landing URL to a canonical collection, SDAS upgrades to `CollectionPage` instead of `WebPage`.
+
+Contexts for landing pages:
+
+- **Page type / URL**
+  - Public `sdas_landing_page` pages that do not have a resolved canonical collection
+- **Owning plugin**
+  - `sdas-inventory`
+- **Output hooks**
+  - `wp_footer` for JSON-LD output on these landing layouts
+- **Emission behavior**
+  - The `WebPage` node describes the marketing or content landing URL
+  - `mainEntity` targets the landing page's primary structured entity
+  - When a canonical collection resolves, SDAS emits `CollectionPage` and no longer treats the page as a plain `WebPage`
+
+</Tab>
+
+<Tab title="Job page (sdas_job)" icon="users">
+
+Job postings use `WebPage` to describe the public job detail URL, separate from the underlying job posting entity.
+
+Contexts for job pages:
+
+- **Page type / URL**
+  - Public single `sdas_job` pages
+- **Owning plugin**
+  - `sdas-dealership-content`
+- **Output hooks**
+  - `wp_head` for JSON-LD output
+- **Emission behavior**
+  - The `WebPage` node represents the job detail URL
+  - `mainEntity` typically points to the job posting entity node
+
+</Tab>
+
+</Tabs>
+
+## Properties SDAS exposes on WebPage
+
+The SDAS `WebPage` node is intentionally minimal and focused on connecting page-level context to the graph.
+
+You can expect the following properties when `WebPage` is emitted:
+
+- `@id`
+  - Canonical page identifier, built from the page permalink and anchored with `#webpage`
+- `url`
+  - Canonical URL of the current page
+- `name`
+  - Human-readable page name or title, aligned with the front-end page title
+- `description`
+  - Concise description of the page, aligned with on-page content where available
+- `isPartOf`
+  - Reference to the site-level `WebSite` node via its `@id`
+- `mainEntity`
+  - Reference to the primary entity for the page, such as a vehicle, job, or other SDAS graph node
+- `primaryImageOfPage` (optional)
+  - Image node reference when SDAS can identify a clear primary image for the page
+
+### Example JSON-LD fragment
+
+The following fragment illustrates the shape SDAS uses for `WebPage` on a qualifying public page. Field names and relationships are representative of SDAS output based on the schema summary.
+
+<CodeGroup tabs="JSON-LD">
+
+```json
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://www.dealership.example/#website",
+      "name": "Cityline Auto Group"
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://www.dealership.example/used/2019-honda-cr-v-ex-l/#webpage",
+      "url": "https://www.dealership.example/used/2019-honda-cr-v-ex-l/",
+      "name": "2019 Honda CR-V EX-L for sale in Fairview",
+      "description": "View photos, pricing, and details for this 2019 Honda CR-V EX-L at Cityline Auto Group in Fairview.",
+      "isPartOf": {
+        "@id": "https://www.dealership.example/#website"
+      },
+      "mainEntity": {
+        "@id": "https://www.dealership.example/vehicle/vh_9f37c2e1/#vehicle"
+      },
+      "primaryImageOfPage": {
+        "@id": "https://www.dealership.example/images/inventory/vh_9f37c2e1_main/#image"
+      }
+    }
+  ]
+}
+```
+
+</CodeGroup>
+
+## Eligibility and suppression strategy
+
+SDAS only emits `WebPage` when both the request and the graph are suitable for public, crawlable schema.
+
+### When WebPage is eligible
+
+SDAS emits `WebPage` in these conditions:
+
+- **Queried object is published and eligible**
+  - The underlying `sdas_vehicle`, `sdas_landing_page`, or `sdas_job` is public and treated as a front-end page
+- **Graph data is valid**
+  - SDAS can resolve a consistent canonical URL and `mainEntity` target for the page
+- **Request is a front-end page view**
+  - Not an admin, preview, or API-like request
+- **Landing pages without canonical collections**
+  - For `sdas_landing_page`, SDAS emits `WebPage` only while the page does not resolve to a canonical collection
+  - Once a canonical collection is identified, the page upgrades to `CollectionPage`
+
+### Global suppression and conservative emission
+
+<Callout kind="info">
+
+SDAS uses a conservative schema emission strategy. It suppresses or restricts `WebPage` and other schema output on non-public, tooling, or ambiguous contexts to avoid noisy or misleading structured data.
+
+</Callout>
+
+Schema output, including `WebPage`, is intentionally suppressed on:
+
+- Admin interfaces and back-end screens
+- Feed, AJAX, REST, and other programmatic responses
+- Preview-like requests, including post previews and builder previews
+
+For some front-end contexts, SDAS is schema-silent or highly restricted rather than emitting full `WebPage` nodes:
+
+- Filtered, sorted, or paged inventory archives
+- AJAX inventory or filter responses
+- Breakdance builder preview, iframe, server-side rendering, and AJAX preview requests
+- Certain Breakdance widgets or modules where schema would not represent a stable public URL
+
+This suppression strategy keeps `WebPage` focused on canonical, indexable pages where the `mainEntity` and surrounding graph are stable and unambiguous.
+
+## How WebPage fits into the SDAS graph
+
+`WebPage` sits between the site-level `WebSite` node and the domain-specific entities owned by SDAS plugins.
+
+On each eligible page:
+
+- The `WebSite` node models the dealership or site as a whole.
+- The `WebPage` node models the specific URL and its metadata.
+- The `mainEntity` points from `WebPage` into inventory, job, or other nodes created by SDAS.
+
+This structure gives search engines a clear, consistent path from the site, to the page, to the primary entity that the page exists to describe.

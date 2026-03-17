@@ -1,0 +1,119 @@
+---
+title: Schema: WebSite
+description: WebSite schema emitted on the public front page, exposing site identity and linking to the AutoDealer node as the publisher.
+---
+
+## WebSite overview
+
+The `WebSite` node exposes the primary site-level Schema.org metadata for SDAS-powered sites and anchors the rest of the schema graph to the home page.
+
+SDAS emits a `WebSite` node only on the public front page, wired to the corresponding `AutoDealer` node as its `publisher`.
+
+## Where WebSite is emitted
+
+The `WebSite` node appears in a very narrow context so that search engines see a single, canonical site entity.
+
+- **Page type / URL**: Public front page at `home_url('/')`
+- **Owning plugin**: `sdas-core`
+- **Output hook**: `wp_head` (injected into the document `<head>` as JSON-LD)
+- **Audience**: External search engines and SEO tooling that consume Schema.org
+
+<Callout kind="info">
+
+SDAS emits the `WebSite` node **only** on the public front-page view. It suppresses this node for admin, feed, AJAX, REST, preview, and all non-front-page requests to avoid duplicate or misleading site-level entities.
+
+</Callout>
+
+## Eligibility and suppression
+
+The `WebSite` node follows the global schema suppression strategy so that inventory-specific or preview-like URLs never expose site-level schema.
+
+SDAS **emits WebSite** when:
+
+- The request resolves to the public site front page (`home_url('/')`)
+- The request runs through normal theme rendering (no iframe, builder, or AJAX-only context)
+
+SDAS **suppresses WebSite** when:
+
+- The request targets any **admin**, **feed**, **AJAX**, or **REST** endpoint
+- The request is a **preview-like** context, including:
+  - Breakdance or other builder previews (iframe, SSR, or AJAX render paths)
+- The request targets any **non-front-page** view, including:
+  - Filtered, sorted, or paged inventory archive URLs
+  - Inventory AJAX/filter responses
+
+This matches the global behavior described in the schema changes: schema output is intentionally silent or restricted for filtered/sorted/paged inventory, AJAX inventory/filter responses, builder previews, and admin/feed/AJAX/REST routes.
+
+## Exposed properties
+
+The `WebSite` node exposes a small, stable set of properties that define the site as an entity and connect it to the dealer.
+
+Key properties include:
+
+- **`@context`**: `"https://schema.org"` (standard Schema.org context)
+- **`@type`**: `"WebSite"`
+- **`@id`**: Canonical site identifier, using the pattern `home_url('/#website')`
+- **`url`**: Canonical root URL of the site, `home_url('/')`
+- **`name`**: Site name, matching the public branding of the dealer site
+- **`publisher`**: Reference to the `AutoDealer` node using its `@id`
+- **`potentialAction`** or other optional search-related properties: Not defined in the current schema-changes summary; SDAS keeps this node minimal and focused on identity and publisher linkage.
+
+<Callout kind="info">
+
+Treat the `WebSite` node as the **site identity anchor**: it exposes a canonical `@id` and URL for the site and delegates all real-world business details to the linked `AutoDealer` publisher node.
+
+</Callout>
+
+## JSON-LD example
+
+The following example shows a representative `WebSite` node as emitted on the public front page. The `@id` and `url` align with `home_url('/')`, and `publisher` points to the corresponding `AutoDealer` node.
+
+<CodeGroup tabs="JSON-LD">
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "https://www.cityautogroup.com/#website",
+  "url": "https://www.cityautogroup.com/",
+  "name": "City Auto Group",
+  "publisher": {
+    "@id": "https://www.cityautogroup.com/#autodealer"
+  }
+}
+```
+
+</CodeGroup>
+
+When you inspect the live front page source, you should see a JSON-LD block similar to this within the `<head>` element, injected via the `wp_head` hook by `sdas-core`.
+
+## Implementation notes for developers
+
+SDAS developers typically do not need to change the `WebSite` node frequently, but understanding its behavior helps avoid duplicate or conflicting site entities.
+
+- **Single instance**: Ensure only one `WebSite` node is emitted per front-page HTML response.
+- **Stable `@id`**: Preserve the `home_url('/#website')` pattern if you modify or extend this node so that other schema references remain stable.
+- **Publisher linkage**: Always point `publisher` to the canonical `AutoDealer` `@id`. Do not inline business details inside `WebSite`; keep them on the `AutoDealer` node.
+- **Respect suppression rules**: If you hook additional schema behavior into `wp_head`, reuse the same suppression conditions (front page only, no admin/feed/AJAX/REST/preview contexts) for any site-level schema you attach to the `WebSite` node.
+
+## SEO review checklist
+
+Technical SEO reviewers can use this as a quick checklist when auditing SDAS deployments:
+
+- The **front page HTML** contains one `WebSite` JSON-LD block in `<head>`.
+- The `@id` ends with `#website` and matches the canonical home URL.
+- The `url` property matches the primary canonical URL for the site (correct protocol and host).
+- The `name` reflects the real site branding.
+- The `publisher.@id` matches the `AutoDealer` node `@id` (for example, `#autodealer`).
+- No `WebSite` node appears on:
+  - Inventory archive pages (including filtered/sorted/paged variants)
+  - AJAX filter responses
+  - Admin, feed, or REST endpoints
+  - Breakdance or other builder previews
+
+## Related schema nodes
+
+The `WebSite` node sits at the top of the SDAS schema graph and connects to more detailed entities.
+
+- [`AutoDealer` (publisher)](/architecture/schema-autodealer) — business-level details for the dealership, referenced by `WebSite.publisher`
+- [`WebPage`](/architecture/schema-webpage) — per-page schema nodes that describe individual pages under the `WebSite` root

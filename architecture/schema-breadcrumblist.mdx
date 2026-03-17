@@ -1,0 +1,230 @@
+---
+title: Schema: BreadcrumbList
+description: Models the navigation hierarchy for SDAS pages using an ordered ListItem trail in Schema.org BreadcrumbList.
+---
+
+## What BreadcrumbList represents in SDAS
+
+BreadcrumbList models where the current page sits in the site hierarchy. SDAS emits a Schema.org `BreadcrumbList` node with an ordered `ListItem` trail for eligible page types so search engines can understand and display that hierarchy.
+
+Breadcrumbs are emitted by SDAS plugins rather than theme code:
+
+- **Owning plugins**
+  - `sdas-inventory` for vehicle detail and inventory-related pages.
+  - `sdas-dealership-content` for job pages.
+- **Output hooks**
+  - `wp_head` for vehicle detail pages (VDPs) and eligible job pages.
+  - `wp_footer` for canonical archives and non-collection landing pages.
+
+<Callout kind="info">
+
+SDAS only emits BreadcrumbList when the URL and page context represent a canonical hierarchy. Breadcrumbs are suppressed for admin, feeds, AJAX, REST, preview-like contexts, and non-canonical or invalid states.
+
+</Callout>
+
+## Page types and emission contexts
+
+<Tabs>
+
+  <Tab title="Vehicle detail pages (VDPs)" icon="monitor">
+
+Vehicle detail pages use BreadcrumbList to express how a specific vehicle sits inside the site hierarchy.
+
+- **Owning plugin**
+  - `sdas-inventory`
+- **Typical URL and page types**
+  - Single vehicle detail pages, modeled as `sdas_vehicle` posts.
+- **Schema output hook**
+  - Emitted in `wp_head` on VDP requests so search engines see the hierarchy early in the HTML.
+- **Breadcrumb behavior**
+  - Uses an ordered ListItem trail to show the path from higher-level inventory or location pages down to the specific vehicle.
+  - Always represents the canonical hierarchy for that VDP, not the particular filtered or sorted path a user may have taken.
+
+<Callout kind="info">
+
+Filtered, sorted, or paged inventory archive URLs that use query strings do not emit BreadcrumbList. SDAS intentionally keeps schema silent on these derivative inventory views.
+
+</Callout>
+
+  </Tab>
+
+  <Tab title="Canonical archives / collections" icon="folder">
+
+Canonical archives and collection-like pages expose the primary structural path into a set of resources.
+
+- **Owning plugin**
+  - `sdas-inventory` for inventory archives and other collection views.
+- **Typical URL and page types**
+  - Canonical inventory archives or collection pages without query-string filters.
+- **Schema output hook**
+  - Emitted in `wp_footer` on canonical archive and collection pages.
+- **Breadcrumb behavior**
+  - The BreadcrumbList trail reflects the stable location of the collection in the navigation tree, not the state of any active filters.
+  - ListItem entries step from top-level sections (such as the home page or brand group) to the current collection.
+
+<Callout kind="info">
+
+SDAS suppresses BreadcrumbList for filtered or paged query-string archive URLs and for AJAX inventory or filter responses. Only the canonical, unfiltered collection view carries a breadcrumb trail.
+
+</Callout>
+
+  </Tab>
+
+  <Tab title="Non-collection landing pages" icon="home">
+
+Standalone landing pages that are not collections still participate in the site hierarchy and can emit BreadcrumbList.
+
+- **Owning plugin**
+  - Typically `sdas-inventory` for inventory-related landings.
+- **Typical URL and page types**
+  - Marketing landings or dealership pages that are not archives or post collections.
+- **Schema output hook**
+  - Emitted in `wp_footer` on eligible non-collection landing pages.
+- **Breadcrumb behavior**
+  - BreadcrumbList describes how the landing page fits into the broader navigation structure.
+  - The ListItem trail usually starts from the root or a major section and ends at the current landing page.
+
+  </Tab>
+
+  <Tab title="Job pages" icon="users">
+
+Job pages use BreadcrumbList to position individual job postings in the dealership content hierarchy.
+
+- **Owning plugin**
+  - `sdas-dealership-content`
+- **Typical URL and page types**
+  - Individual job listings on eligible `sdas_job` pages.
+- **Schema output hook**
+  - Emitted in `wp_head` on job pages when breadcrumbs are enabled.
+- **Breadcrumb behavior**
+  - BreadcrumbList is **optional** on jobs and only emitted when the page participates in a valid hierarchy.
+  - The ListItem trail usually links from higher-level career or dealership pages to the specific job.
+
+<Callout kind="info">
+
+SDAS suppresses BreadcrumbList for jobs that do not belong to a valid hierarchy, as well as for admin, feed, AJAX, REST, and preview contexts.
+
+</Callout>
+
+  </Tab>
+
+</Tabs>
+
+## Structure and hierarchy
+
+BreadcrumbList in SDAS follows core Schema.org conventions while aligning with SDAS suppression rules.
+
+Key characteristics:
+
+- **Canonical identity**
+  - Uses a stable `@id` (for example, `#breadcrumb`) so other nodes can refer to the breadcrumb graph fragment consistently.
+- **Ordered ListItem trail**
+  - Breadcrumb elements are always represented as an ordered list of `ListItem` nodes.
+  - Each ListItem includes a `position` field so search engines can reconstruct the trail deterministically.
+- **Hierarchical clarity**
+  - The trail describes the logical navigation path, not the session path a user took to reach the page.
+  - The final ListItem represents the current page, with upstream items linking to parent nodes such as WebPage or CollectionPage instances.
+
+<Callout kind="info">
+
+SDAS prefers to omit BreadcrumbList entirely rather than emit a breadcrumb trail for non-canonical URLs or preview-like states. If you do not see BreadcrumbList in your markup, first confirm that the request is canonical and not filtered, paged, AJAX, or admin.
+
+</Callout>
+
+## Example BreadcrumbList JSON-LD
+
+The following example shows a simplified BreadcrumbList for a vehicle detail page, highlighting the ordered ListItem trail and canonical `@id`. Field names follow Schema.org for BreadcrumbList and ListItem; concrete URLs and names will vary by site.
+
+<CodeGroup tabs="JSON-LD">
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "@id": "https://www.carterautogroup.com/inventory/suvs/used-2021-toyota-rav4-le#breadcrumb",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "item": {
+        "@id": "https://www.carterautogroup.com/",
+        "@type": "WebPage",
+        "name": "Home"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "item": {
+        "@id": "https://www.carterautogroup.com/inventory/",
+        "@type": "CollectionPage",
+        "name": "Inventory"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "item": {
+        "@id": "https://www.carterautogroup.com/inventory/suvs/",
+        "@type": "CollectionPage",
+        "name": "SUVs"
+      }
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "item": {
+        "@id": "https://www.carterautogroup.com/inventory/suvs/used-2021-toyota-rav4-le",
+        "@type": "WebPage",
+        "name": "Used 2021 Toyota RAV4 LE"
+      }
+    }
+  ]
+}
+```
+
+</CodeGroup>
+
+When SDAS emits BreadcrumbList:
+
+- The `@id` value remains stable for the canonical URL, including the `#breadcrumb` fragment.
+- The `itemListElement` array always appears in ascending `position` order.
+- Intermediate `item` nodes commonly reuse the same WebPage and CollectionPage entities used elsewhere in SDAS schema.
+
+## SEO and implementation notes
+
+For technical SEO and SDAS developers, the main implications of BreadcrumbList behavior are:
+
+- **Canonical-only emission**
+  - Expect BreadcrumbList only on canonical VDPs, canonical archives and collections, non-collection landings, and eligible job pages.
+  - Do not rely on breadcrumbs for faceted URLs, search results, or paged inventory states.
+- **Plugin responsibility**
+  - Extend or adjust BreadcrumbList behavior through `sdas-inventory` and `sdas-dealership-content`, not via ad hoc theme code.
+  - Inventory-specific hierarchy changes should originate in `sdas-inventory`, while job hierarchy adjustments belong in `sdas-dealership-content`.
+- **Preview and tooling**
+  - If you test pages via AJAX previews, REST endpoints, or admin screens, expect no BreadcrumbList output.
+  - Confirm breadcrumb presence on full front-end requests that match the canonical URLs.
+
+## Related nodes
+
+<Columns cols={3}>
+
+  <Card title="Schema: ListItem" href="/architecture/schema-listitem" icon="list">
+
+Learn how individual breadcrumb entries are modeled as ListItem nodes and how positions, names, and targets are defined.
+
+  </Card>
+
+  <Card title="Schema: WebPage" href="/architecture/schema-webpage" icon="monitor">
+
+See how WebPage nodes connect to BreadcrumbList and represent individual pages in the site graph.
+
+  </Card>
+
+  <Card title="Schema: CollectionPage" href="/architecture/schema-collectionpage" icon="folder">
+
+Understand how CollectionPage nodes describe inventory and other collections that often appear in breadcrumb trails.
+
+  </Card>
+
+</Columns>

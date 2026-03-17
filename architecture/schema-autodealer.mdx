@@ -1,0 +1,128 @@
+---
+title: Schema: AutoDealer
+description: Defines the dealership entity as an AutoDealer node, emitted as JSON-LD on the public front page only.
+---
+
+## Purpose
+
+The `AutoDealer` node defines the primary dealership entity for the site graph and anchors other schema to a single organization identity.
+
+SDAS emits this node as JSON-LD on the public front page to give crawlers a stable, canonical representation of the dealership.
+
+## Where it is exposed
+
+Use this section to confirm that you are looking at the right request when validating structured data.
+
+- **Page types / URLs:** Public frontend **front page only**, at `home_url('/')`.
+- **Owning plugin:** `sdas-core` (Core MU-plugin).
+- **Output hook:** WordPress `wp_head` hook, as part of SDAS schema output.
+
+When you inspect the HTML source for the front page, you should see a `<script type="application/ld+json">` block that includes an `AutoDealer` object with `@id` equal to `home_url('/#organization')`.
+
+## What it exposes
+
+The `AutoDealer` node emits a minimal but consistent set of organization properties tied to the dealership.
+
+Fields and properties mentioned as emitted:
+
+- **Canonical `@id`:** `home_url('/#organization')` as the stable identifier for the dealership.
+- **Site URL:** The base URL of the site, aligned with `home_url('/')`.
+- **Name:** The dealership name.
+- **Logo (optional):** When configured in site or dealership settings.
+- **Phone (optional):** When configured in dealership settings.
+- **PostalAddress (optional):** Constructed from the `sdas_dealership_settings` option when address details are present.
+
+<Callout kind="info">
+
+SDAS intentionally keeps the `AutoDealer` definition compact. It focuses on the canonical identifier and core contact/branding details, rather than mirroring every possible Schema.org `AutoDealer` field.
+
+</Callout>
+
+## Example JSON-LD fragment (simplified)
+
+This fragment illustrates the shape of the `AutoDealer` node. It is **simplified for documentation** and does not list every field SDAS may emit or every nested property Schema.org supports.
+
+<CodeGroup tabs="JSON-LD">
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "AutoDealer",
+  "@id": "https://www.harborviewmotors.com/#organization",
+  "url": "https://www.harborviewmotors.com/",
+  "name": "Harborview Motors",
+  "logo": "https://www.harborviewmotors.com/wp-content/uploads/branding/dealer-logo.png",
+  "telephone": "+1-425-555-0136",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "1482 Shoreline Avenue",
+    "addressLocality": "Everett",
+    "addressRegion": "WA",
+    "postalCode": "98201",
+    "addressCountry": "US"
+  }
+}
+```
+
+</CodeGroup>
+
+When validating your own site, you should see a similar structure, with:
+
+- `@type` set to `AutoDealer`
+- `@id` using the `home_url('/#organization')` pattern
+- Contact/branding fields populated from dealership settings where available
+
+## Eligibility and suppression
+
+The `AutoDealer` node is only eligible on the public frontend front page. SDAS suppresses this schema in all other runtime contexts.
+
+<Callout kind="info">
+
+SDAS follows a conservative global suppression strategy. Schema output, including `AutoDealer`, is **silent** on admin, feed, AJAX, REST, preview, and other non-canonical or preview-like requests. This avoids leaking inconsistent or low-quality structured data into crawlable surfaces.
+
+</Callout>
+
+`AutoDealer` **is emitted**:
+
+- On the **public site front page** at `home_url('/')`
+- For standard frontend requests that are not previews or special modes
+
+`AutoDealer` **is suppressed** for:
+
+- **Admin** screens and logged-in admin views
+- **Feeds** (RSS/Atom) and other non-HTML outputs
+- **AJAX** inventory or filter responses
+- **REST API** responses
+- **Filtered/sorted/paged/mixed inventory URLs** where query strings alter the canonical view
+- **Builder and preview contexts**, including:
+  - Breakdance builder preview
+  - Builder iframes
+  - Server-side render previews
+  - AJAX-based previews
+- Any other **non-front-page requests**, even on the public frontend
+
+This strategy ensures that search engines primarily see the `AutoDealer` node in its intended, canonical context.
+
+## Implementation notes for developers
+
+When working inside `sdas-core` or adjacent plugins, keep these behaviors in mind:
+
+- Tie any extensions of the dealership entity back to the existing `@id` of `home_url('/#organization')` instead of creating multiple organization nodes.
+- Source address, phone, and related contact info via the `sdas_dealership_settings` option to stay aligned with the current `AutoDealer` payload.
+- Respect the global suppression rules when adding new schema so that additional nodes do not appear on suppressed contexts where `AutoDealer` is absent.
+
+If you introduce new structured data that logically belongs to the dealership entity, connect it using the existing `AutoDealer` `@id` rather than duplicating organization information.
+
+## Related schema nodes
+
+SDAS also emits other Schema.org nodes that connect to, or coexist with, the `AutoDealer` dealership entity.
+
+- `WebSite` – global site container that represents the website as a whole.
+- `WebPage` – per-page nodes that describe individual URLs.
+- Inventory and vehicle-level nodes, where present, that conceptually link back to the dealership as the seller.
+
+For details, see the dedicated pages for:
+
+- Schema: WebSite
+- Schema: WebPage
+- Schema: Vehicle and inventory nodes

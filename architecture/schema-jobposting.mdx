@@ -1,0 +1,229 @@
+---
+title: Schema: JobPosting
+description: Schema.org JobPosting emitted on eligible sdas_job pages when required job fields are present, with output gated by core job data.
+---
+
+## JobPosting schema in SDAS
+
+JobPosting schema describes an individual job listing for search engines and is emitted on public, single `sdas_job` pages only.
+
+SDAS generates this JSON-LD from the `sdas-dealership-content` plugin and injects it on the front end via the `wp_head` hook.
+
+- **Page scope:** Only public single `sdas_job` pages.
+- **Source plugin:** `sdas-dealership-content`.
+- **Output location:** `wp_head` as JSON-LD (`application/ld+json`).
+- **Canonical node:** `@id` uses the job permalink with `#jobposting` appended.
+
+## Eligibility and suppression rules
+
+JobPosting schema appears only when the job record is complete enough to be valid for search.
+
+<Callout kind="info">
+
+JobPosting output is **gated** by four required fields:
+
+- **title**
+- **description**
+- **datePosted**
+- **location**
+
+SDAS suppresses JobPosting schema when:
+
+- Any required field is missing or empty.
+- The request is not a public single `sdas_job` page (for example, admin, feeds, AJAX, REST, or other non-job contexts).
+
+</Callout>
+
+When the schema is eligible, SDAS includes:
+
+- Core identity: `@id` (permalink with `#jobposting`), `title`, `description`, `datePosted`, `employmentType`.
+- Organization: `hiringOrganization` mapped to the site `AutoDealer` entity.
+- Location:
+  - Local jobs: `jobLocation` with a `PostalAddress`.
+  - Remote jobs: `jobLocationType` of `TELECOMMUTE`, plus `Country` and `applicantLocationRequirements`.
+- Optional compensation: `baseSalary` as a `QuantitativeValue`.
+- URL: canonical job URL.
+
+## Local versus remote jobs
+
+Local and remote jobs share the same JobPosting core, but differ in how SDAS models location and eligibility for applicants.
+
+<Tabs>
+
+  <Tab title="Local job" icon="map-pin">
+
+Local jobs are tied to a physical dealership or office address via `jobLocation` and a nested `PostalAddress`.
+
+SDAS uses a local job variant when the job is not explicitly marked as remote:
+
+- `jobLocation` points to a place associated with the dealership.
+- The nested `PostalAddress` includes the street and locality-level details.
+- SDAS does not add `TELECOMMUTE` or `applicantLocationRequirements`.
+
+Key characteristics:
+
+- Search engines understand the job as **on-site** at a specific address.
+- Local SEO signals align with the dealership's physical market.
+- Use for service, sales, and in-store roles that require presence at the dealership.
+
+### Example: Local job JSON-LD
+
+<CodeGroup tabs="JSON-LD">
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "JobPosting",
+  "@id": "https://www.lakesideauto.com/jobs/service-advisor-4821#jobposting",
+  "title": "Service Advisor",
+  "description": "Lakeside Auto is hiring an experienced Service Advisor to support our growing fixed operations team.",
+  "datePosted": "2024-03-15",
+  "employmentType": "FULL_TIME",
+  "hiringOrganization": {
+    "@type": "AutoDealer",
+    "name": "Lakeside Auto",
+    "url": "https://www.lakesideauto.com"
+  },
+  "jobLocation": {
+    "@type": "Place",
+    "name": "Lakeside Auto - Main Store",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "1840 Lake Shore Drive",
+      "addressLocality": "Springfield",
+      "addressRegion": "IL",
+      "postalCode": "62704",
+      "addressCountry": "US"
+    }
+  },
+  "baseSalary": {
+    "@type": "MonetaryAmount",
+    "currency": "USD",
+    "value": {
+      "@type": "QuantitativeValue",
+      "minValue": 52000,
+      "maxValue": 68000,
+      "unitText": "YEAR"
+    }
+  },
+  "url": "https://www.lakesideauto.com/jobs/service-advisor-4821"
+}
+```
+
+</CodeGroup>
+
+  </Tab>
+
+  <Tab title="Remote job" icon="cloud">
+
+Remote jobs use `TELECOMMUTE` to signal that work is performed off-site and constrain who can apply via country and applicant location requirements.
+
+SDAS uses a remote variant when the job is designated as remote:
+
+- `jobLocationType` set to `TELECOMMUTE`.
+- A `Country` node captures the base country for the role.
+- `applicantLocationRequirements` describes where applicants must be located.
+
+Key characteristics:
+
+- Search engines understand the job as **remote-friendly**.
+- Country and location requirement fields prevent mismatches (for example, nationwide US-only roles).
+- Use for centralized BDC, marketing, or support roles that do not require in-store presence.
+
+### Example: Remote job JSON-LD
+
+<CodeGroup tabs="JSON-LD">
+
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "JobPosting",
+  "@id": "https://www.nationalautogroup.com/jobs/remote-bdc-specialist-7712#jobposting",
+  "title": "Remote BDC Specialist",
+  "description": "National Auto Group is hiring a remote Business Development Center Specialist to handle inbound and outbound sales leads.",
+  "datePosted": "2024-04-02",
+  "employmentType": "FULL_TIME",
+  "hiringOrganization": {
+    "@type": "AutoDealer",
+    "name": "National Auto Group",
+    "url": "https://www.nationalautogroup.com"
+  },
+  "jobLocationType": "TELECOMMUTE",
+  "applicantLocationRequirements": {
+    "@type": "Country",
+    "name": "United States"
+  },
+  "jobLocation": {
+    "@type": "Country",
+    "name": "United States"
+  },
+  "baseSalary": {
+    "@type": "MonetaryAmount",
+    "currency": "USD",
+    "value": {
+      "@type": "QuantitativeValue",
+      "minValue": 22,
+      "maxValue": 28,
+      "unitText": "HOUR"
+    }
+  },
+  "url": "https://www.nationalautogroup.com/jobs/remote-bdc-specialist-7712"
+}
+```
+
+</CodeGroup>
+
+  </Tab>
+
+</Tabs>
+
+## SEO and implementation notes
+
+Technical SEO teams and SDAS developers should align on how JobPosting is populated and validated.
+
+- **Respect gating rules.** Do not short-circuit the required-field checks; invalid schema is often worse than no schema.
+- **Keep `@id` stable.** The `#jobposting` fragment lets search engines track updates; avoid changing permalinks unnecessarily.
+- **Map employment type consistently.** Use canonical codes such as `FULL_TIME`, `PART_TIME`, `CONTRACT` to match schema expectations.
+- **Model salary truthfully.** When available, express ranges with `QuantitativeValue` and a suitable `unitText` (for example, `YEAR`, `HOUR`).
+- **Avoid duplicate job entities.** Ensure other plugins or themes do not add conflicting JobPosting JSON-LD on the same page.
+
+## Related schema components
+
+These types are used inside JobPosting and are documented separately.
+
+<Columns cols={3}>
+
+  <Card
+    title="PostalAddress"
+    href="/architecture/schema-postaladdress"
+    icon="map-pin"
+    cta="Model physical job locations"
+  >
+
+Learn how SDAS builds PostalAddress for dealership and office addresses.
+
+  </Card>
+
+  <Card
+    title="Country"
+    href="/architecture/schema-country"
+    icon="globe"
+    cta="Constrain remote job regions"
+  >
+
+See how Country is used for remote roles and applicant location requirements.
+
+  </Card>
+
+  <Card
+    title="QuantitativeValue"
+    href="/architecture/schema-quantitativevalue"
+    icon="bar-chart"
+    cta="Represent salary ranges"
+  >
+
+Understand how SDAS represents salary and compensation ranges in schema.
+
+  </Card>
+
+</Columns>
