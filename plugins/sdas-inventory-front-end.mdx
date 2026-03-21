@@ -3,573 +3,124 @@ title: SDAS Inventory front-end integration
 description: Learn how to show vehicle inventory on your WordPress site using SDAS Inventory shortcodes, from first setup to saved and compare pages.
 ---
 
-## What SDAS Inventory does on your site
+## Overview
 
-SDAS Inventory adds a dedicated vehicle inventory content type and the blocks you use (via shortcodes) to show vehicles on your public site.
+SDAS Inventory provides a comprehensive suite of shortcodes to display vehicle data and interactive tools on your WordPress site. These shortcodes are designed to work with any theme and are compatible with modern page builders like **Breakdance**, **Beaver Builder**, and **Elementor**.
 
-From a site visitor’s point of view, SDAS Inventory powers:
+## Core Browsing Shortcodes
 
-- An **inventory listing page** where they can search and browse many vehicles.
-- **Vehicle detail pages** (VDPs) with photos, specs, and rich descriptions.
-- **Tools and helpers** like payment calculators, comparison, recently viewed, and saved vehicles.
+These shortcodes build the primary shopping journey for your visitors.
 
-From an admin’s point of view, you decide:
+### `[sdas_vehicle_grid]`
+Displays a grid or list of vehicles. This is the primary way to show multiple vehicles on a page.
 
-- Which pages show inventory and where those sections appear.
-- Which shortcodes you place on each page.
-- How prominent features like comparison, saved vehicles, and awards are in the layout.
+**Available Attributes:**
 
-<Callout kind="info">
+| Attribute | Default | Description |
+| :--- | :--- | :--- |
+| `per_page` | `12` | Number of vehicles to display per page. |
+| `orderby` | `date` | Sort by `date`, `price`, `mileage`, `year`, or `title`. |
+| `order` | `DESC` | Sort order (`ASC` or `DESC`). |
+| `view` | `grid` | Initial view style: `grid` or `list`. |
+| `columns` | `3` | Number of columns in grid view. |
+| `enable_view_toggle` | `true` | Whether to show the grid/list view toggle. |
+| `pagination_style` | `numbers` | Pagination style: `numbers`, `simple`, or `load_more`. |
+| `show_compare_button` | `false` | Whether to show the "Add to Compare" button on cards. |
+| `show_quick_view` | `false` | Whether to show the "Quick View" button on cards. |
 
-You do not need to write code to use SDAS Inventory. Treat the shortcodes on this page like building blocks you can add to any page or block area in WordPress.
+**Display Options (Show/Hide Fields):**
+You can toggle specific vehicle details on the cards using `true` or `false`:
+`show_year`, `show_make`, `show_model`, `show_price`, `show_condition`, `show_body_type`, `show_transmission`, `show_mileage`, `show_stock_number`, `show_vin`, `show_location`, `show_drivetrain`, `show_engine`, `show_fuel_type`.
 
-</Callout>
+Example:
+```text
+[sdas_vehicle_grid per_page="24" show_year="true" show_make="true" show_model="true" show_compare_button="true"]
+```
 
-## Quick setup: get inventory live
+### `[sdas_vehicle_search]`
+Displays a search bar that allows visitors to find vehicles by keyword, VIN, or stock number.
 
-Use this guided flow to go from “plugin installed” to “inventory live on the site.”
+**Available Attributes:**
+
+| Attribute | Default | Description |
+| :--- | :--- | :--- |
+| `style` | `hero` | Visual style: `hero`, `compact`, or `inline`. |
+| `placeholder` | `Search vehicles...` | Placeholder text for the search input. |
+| `show_autocomplete` | `true` | Whether to show live search suggestions. |
+| `search_fields` | `vin,stock,make,model,year,description` | Comma-separated list of fields to search. |
+
+Example:
+```text
+[sdas_vehicle_search style="compact" placeholder="Search by VIN or Model..."]
+```
+
+## Vehicle Detail Page (VDP) Shortcodes
+
+These shortcodes are used to build or enhance individual vehicle pages.
+
+- **`[sdas_vehicle_gallery]`**: Displays the vehicle's photo gallery.
+- **`[sdas_vehicle_spec_sheet]`**: Outputs a structured table of vehicle specifications.
+- **`[sdas_payment_calculator]`**: Adds an interactive payment estimator for the current vehicle.
+- **`[sdas_similar_vehicles]`**: Shows a grid of related vehicles based on segment or price.
+- **`[sdas_vdp_cta]`**: Displays a call-to-action block (e.g., "Get a Quote" or "Book a Test Drive").
+
+## Personalization and Comparison
+
+Turn on richer shopping tools with these interactive shortcodes:
+
+- **`[sdas_vehicle_compare]`**: Renders the side-by-side comparison view. Place this on a dedicated "Compare" page.
+- **`[sdas_compare_button]`**: Adds a button to add the current vehicle to the comparison list.
+- **`[sdas_save_vehicle_button]`**: Adds a "Save" or "Favorite" button to a vehicle.
+- **`[sdas_saved_vehicles]`**: Displays the visitor's list of saved vehicles.
+- **`[sdas_recently_viewed]`**: Shows a list of vehicles the visitor has recently browsed.
+
+## Dynamic Content Shortcodes
+
+These shortcodes are useful for landing pages and SEO-focused content:
+
+- **`[sdas_body_type]`**: Dynamically outputs the body type of the current vehicle or landing page context.
+- **`[sdas_city_name]`**: Outputs the dealership's city name for local SEO.
+- **`[landing_page_image]`**: Displays the default image for a specific body type (configured in SDAS Inventory settings).
+- **`[landing_page_benefits]`**: Outputs a list of dealership benefits (e.g., "The Super Dave's Advantage").
+
+## Setup: get inventory live
 
 <Steps>
 
 <Step title="Check prerequisites" icon="check-circle">
-
-Make sure the core pieces are active before you start placing inventory on pages.
-
-- Confirm **SDAS Core** and **SDAS Inventory** are both active under **Plugins** in the WordPress admin.
-- Confirm your inventory is being filled (for example by **SDAS CSV Importer**) or you have added at least one vehicle, so you have something to show.
-- Go to **Settings → Permalinks** and save your permalink settings once (no need to change them). This refreshes WordPress routes so vehicle URLs and inventory pages work correctly.
-
-If any of these are missing, resolve them first, then come back to this page.
-
+Ensure SDAS Core and SDAS Inventory are active. Save your permalink settings once to refresh routes.
 </Step>
 
 <Step title="Create your main Inventory page" icon="plus">
-
-Set up a dedicated page where visitors can browse the full inventory.
-
-- Go to **Pages → Add New**.
-- Name the page something like **Inventory**, **New vehicles**, or **Used vehicles**.
-- In the block editor, add a **Shortcode** block (search for “Shortcode” in the block inserter).
-- Leave the page open — you will add shortcodes in the next step.
-
-You can create multiple inventory pages later (for example, new vs. used), but start with a single main inventory page.
-
+Create a new page and add `[sdas_vehicle_search]` and `[sdas_vehicle_grid]`.
 </Step>
 
-<Step title="Add search and grid shortcodes" icon="layout-grid">
-
-Place the core shortcodes that power the listing page.
-
-In the **Shortcode** block on your inventory page, paste the following:
-
-```php
-[sdas_vehicle_search]
-
-[sdas_vehicle_grid]
-```
-
-If you prefer separate areas:
-
-- Add one Shortcode block for `[sdas_vehicle_search]` near the top of the page.
-- Add another Shortcode block for `[sdas_vehicle_grid]` below it.
-
-Publish or update the page, then view it on the front end. You should see a search interface and a list or grid of vehicles.
-
+<Step title="Verify detail pages" icon="monitor">
+Click a vehicle in the grid to ensure the detail page (VDP) loads correctly.
 </Step>
 
-<Step title="Verify a vehicle detail page works" icon="monitor">
-
-Test that clicking a vehicle opens a full detail page.
-
-- On your new inventory page, click any vehicle result.
-- Confirm you land on a **vehicle detail page** that shows at least:
-  - A title (for example “2021 Honda Civic LX”).
-  - Some specs (year, make, model, etc.).
-  - Photos or a gallery if images are available.
-
-If you see a **404 page** or a generic blog post template instead of a proper vehicle detail, see the troubleshooting section below.
-
-</Step>
-
-<Step title="Add optional inventory features" icon="settings">
-
-Once the basics are working, enhance the experience with extra shortcodes:
-
-- Add a **“Saved vehicles”** page using `[sdas_saved_vehicles]`.
-- Add a **“Compare vehicles”** page using `[sdas_vehicle_compare]`.
-- Add **recently viewed** or **featured** strips to your homepage or sidebar.
-
-You control where these appear by placing the shortcodes on any page, post, or widget area. Your active theme controls the visual style and layout.
-
+<Step title="Add tools" icon="settings">
+Create dedicated pages for **Saved Vehicles** and **Comparison** using their respective shortcodes.
 </Step>
 
 </Steps>
 
-When you complete these steps, visitors can find your inventory, open vehicle detail pages, and you have a clear place to add more inventory features.
-
-## Shortcodes you can use (feature catalog)
-
-Shortcodes are the main way you turn SDAS Inventory features on or off on specific pages. Add them to any page via a **Shortcode** block in the editor.
-
-Below are the available shortcodes and what they do in plain language.
-
-<Callout kind="info">
-
-All shortcodes work without extra settings. You can add attributes later for more control; for admin use, start with the basic form shown here.
-
-</Callout>
-
-### Core browsing shortcodes
-
-These build the main shopping journey.
-
-- **`[sdas_vehicle_grid]`**  
-  Shows a grid or list of vehicles. Use this on your main inventory page or any landing page where you want multiple vehicles to appear.
-
-- **`[sdas_vehicle_search]`**  
-  Displays a search and filter interface that works with your inventory. Place this above or beside `[sdas_vehicle_grid]` to let visitors narrow their results.
-
-- **`[sdas_vehicle_slider]`**  
-  Renders a moving slider or carousel of vehicles. Ideal for homepage strips like “Featured inventory” or campaign highlights.
-
-### Vehicle detail (VDP) shortcodes
-
-These enhance individual vehicle pages.
-
-- **`[sdas_vehicle_gallery]`**  
-  Shows the photo gallery for a single vehicle. Use this where you want the main image area on the vehicle detail page.
-
-- **`[sdas_vehicle_spec_sheet]`**  
-  Outputs a structured block of specs (year, make, model, trim, engine, etc.) in a compact layout. Place this near the top of the vehicle detail page.
-
-- **`[sdas_payment_calculator]`**  
-  Adds a payment calculator so visitors can estimate monthly payments for the current vehicle.
-
-- **`[sdas_similar_vehicles]`**  
-  Shows vehicles related to the current one (for example similar model or segment). Place this near the bottom of vehicle detail pages to keep shoppers browsing.
-
-### Comparison and personalization shortcodes
-
-These turn on richer shopping tools.
-
-- **`[sdas_vehicle_compare]`**  
-  Renders the main comparison view where multiple vehicles are shown side by side. Use this on a dedicated “Compare vehicles” page.
-
-- **`[sdas_compare_button]`**  
-  Adds a button visitors click to add a vehicle to their comparison list. Use this on vehicle cards or detail pages (placement often depends on your theme).
-
-- **`[sdas_recently_viewed]`**  
-  Shows a list of vehicles the current visitor has viewed recently. Good options include sidebars, footers, or below content on vehicle detail pages.
-
-- **`[sdas_save_vehicle_button]`**  
-  Adds a “save” or “favorite” button to a vehicle so visitors can keep track of cars they like.
-
-- **`[sdas_saved_vehicles]`**  
-  Displays the visitor’s saved vehicles. Use this on a “Saved vehicles” page or in an account area.
-
-### Highlight and overview shortcodes
-
-Use these to call attention to specific vehicles or overall stats.
-
-- **`[sdas_featured_vehicle]`**  
-  Highlights a featured vehicle (for example, a spotlight deal). Ideal for homepages, hero sections, or special promotion pages.
-
-- **`[sdas_inventory_stats]`**  
-  Shows high-level inventory stats, such as total vehicles or mix. Use this in overview sections, dashboards, or marketing pages.
-
-## Copy/paste shortcode patterns (block editor friendly)
-
-Use these examples as a library of snippets to drop into Shortcode blocks. They do not require any theme edits.
-
-### Main inventory page
-
-Create a primary inventory page with search above a grid of vehicles.
-
-```php
-[sdas_vehicle_search]
-
-[sdas_vehicle_grid]
-```
-
-Place each shortcode in its own Shortcode block if you want spacing between them, or together in one Shortcode block if your theme handles spacing.
-
-### Vehicle detail content blocks
-
-If your site lets you edit the vehicle detail template content (for example with a template editor), you can add these blocks:
-
-```php
-[sdas_vehicle_gallery]
-
-[sdas_vehicle_spec_sheet]
-
-[sdas_payment_calculator]
-
-[sdas_similar_vehicles]
-```
-
-Use only the parts you need. For example, you might start with gallery and spec sheet, then add payment calculator later.
-
-### Compare vehicles page
-
-Create a dedicated comparison page under **Pages → Add New**, name it **Compare vehicles**, and add:
-
-```php
-[sdas_vehicle_compare]
-```
-
-You or your developer can then place `[sdas_compare_button]` on vehicle cards so visitors can send vehicles to this page.
-
-### Saved vehicles page
-
-Create a **Saved vehicles** page and add:
-
-```php
-[sdas_saved_vehicles]
-```
-
-Pair this with `[sdas_save_vehicle_button]` on vehicle cards or detail pages to let visitors save vehicles for later.
-
-### Homepage inventory strip
-
-Highlight inventory on the homepage (or any landing page):
-
-```php
-[sdas_vehicle_slider]
-
-[sdas_featured_vehicle]
-```
-
-Add these to one or more Shortcode blocks in the homepage content area. Your theme handles typography and spacing; the shortcodes handle the vehicle content.
-
-## What visitors see vs. what you control
-
-Understanding the divide between “data” and “design” helps you know what to adjust from the admin side and when you might need a developer.
-
-- **SDAS Inventory controls:**
-  - Which vehicles exist (via imports or manual adds).
-  - What data is attached to each vehicle (mileage, price, photos, awards, etc.).
-  - Which features are available as shortcodes.
-
-- **You (the admin) control:**
-  - Which pages exist (Inventory, Compare, Saved vehicles, etc.).
-  - Which shortcodes are on each page and in what order.
-  - Basic page content around the shortcodes (headings, intro text, SEO copy).
-
-- **The theme controls:**
-  - Exact layout (grid vs list, columns, sidebar vs full width).
-  - Colors, fonts, buttons, and spacing.
-  - Header, footer, and shared navigation.
-
-If something “isn’t showing at all,” it is usually a shortcode or data issue. If something “looks wrong” but the content is there, it is usually a theme or CSS decision.
-
-## Generated descriptions and awards (how they appear)
-
-SDAS Inventory can enrich your vehicle detail pages with smarter copy and awards information.
-
-- **OpenAI‑powered descriptions**  
-  Vehicles can have long-form, natural-sounding descriptions generated for them. These typically show up in the main description area of the vehicle detail page. If your theme shows the vehicle content, these descriptions appear automatically when available.
-
-- **Award and recognition content**  
-  SDAS Inventory can surface awards or recognitions for certain vehicles. You can place this content near specs or pricing as a highlight, depending on how your theme templates are set up.
-
-As an admin, you mainly decide:
-
-- Whether to keep or edit any generated descriptions that appear.
-- Where in your page content you mention awards or call them out (for example, with headings like “Awards and highlights”).
-
-If you do not see this content, check with your developer or implementer that your vehicle detail template is outputting all SDAS Inventory fields.
-
-## How SDAS Inventory works with other SDAS plugins (for admins)
-
-SDAS Inventory is one piece of the SDAS stack. Other plugins add filters, lead forms, tracking, and imports. You mostly interact with them through settings and page content.
-
-### Vehicle filtering and search
-
-**SDAS Vehicle Filters** adds more advanced filtering and live updating over your inventory.
-
-For you as an admin:
-
-- Keep using `[sdas_vehicle_search]` and `[sdas_vehicle_grid]` as your base.
-- Your implementer may add filter widgets or blocks around these areas so visitors can refine results without reloading the page.
-
-For details and examples, see [Vehicle Filters (front end)](/plugins/sdas-vehicle-filters-front-end).
-
-### Inventory data and images
-
-**SDAS CSV Importer** keeps the inventory up to date by importing vehicles and their images from external feeds.
-
-For you as an admin:
-
-- Expect new or updated vehicles to appear automatically in your grid and detail pages once the importer runs.
-- If vehicles or photos are missing, you often need to check the CSV import status first, not the page content.
-
-Learn how the importer affects what you see on the site in [CSV Importer (front end)](/plugins/sdas-csv-importer-front-end).
-
-### Tracking visitor journeys
-
-**SDAS Tracking Hub** tracks how visitors move through listings and vehicle detail pages and what they click.
-
-As an admin:
-
-- Try to keep stable page names and routes for key pages like Inventory, Compare, and Saved vehicles.
-- Avoid renaming or removing these pages without checking tracking reports, since those routes may be part of your reporting setup.
-
-See examples of how inventory pages are used in funnels in [Tracking Hub (front end)](/plugins/sdas-tracking-hub-front-end).
-
-### Forms and CRM leads
-
-Lead capture usually happens on vehicle detail pages, and two plugins support this:
-
-- **SDAS Forms Extension** — lets you add forms (contact, test drive, finance) to your pages.
-- **SDAS CRM Connector** — sends those leads into your CRM with the correct vehicle attached.
-
-As an admin:
-
-- Place forms from Forms Extension on or near your key vehicle content (for example, under `[sdas_payment_calculator]` or alongside `[sdas_vehicle_spec_sheet]`).
-- Keep a clear “lead path” on VDPs: description → specs → tools → form.
-
-For configuration and placement tips, see [Forms Extension (front end)](/plugins/sdas-forms-extension-front-end) and [CRM Connector (front end)](/plugins/sdas-crm-connector-front-end).
-
-## Troubleshooting common issues (admins)
-
-Use these checks when inventory does not look right on the live site.
-
-### Inventory page shows “No vehicles found”
-
-Possible causes and checks:
-
-- **No vehicles exist yet**
-  - Go to **Vehicles** (or your equivalent inventory menu) in the WordPress admin.
-  - Confirm there are published vehicles. If not, check CSV import settings or add a test vehicle manually.
-
-- **The wrong shortcode is used**
-  - Edit your inventory page.
-  - Confirm you are using `[sdas_vehicle_grid]` (and optionally `[sdas_vehicle_search]`), with square brackets and no typos.
-
-- **Filters are hiding everything**
-  - If you use advanced filters, open the page in a private/incognito window to clear stored filters.
-  - Try searching with very broad criteria (or clearing all filters) to see if vehicles appear.
-
-### Images are missing or broken
-
-If vehicles show but images do not:
-
-- **Check media in the admin**
-  - Open a vehicle in the WordPress admin and confirm photos are attached or visible in its gallery.
-- **Confirm imports**
-  - If you rely on CSV imports, make sure the latest import completed and included image URLs.
-- **Test one vehicle**
-  - Pick a specific vehicle and ensure its images appear in the Media Library. If the media is missing there, fix the import or upload images; the front end will update automatically.
-
-### Clicking a vehicle shows a 404 page
-
-If clicking a vehicle from the grid leads to “Page not found”:
-
-- **Refresh permalinks**
-  - Go to **Settings → Permalinks**.
-  - Click **Save Changes** once (no need to adjust settings).
-  - Try the vehicle link again.
-
-- **Check that SDAS Inventory is active**
-  - Under **Plugins**, confirm **SDAS Inventory** is active. If it is deactivated, vehicle routes may not exist.
-
-If the issue persists, share this page with your developer; they may need to review theme templates (see the Advanced section).
-
-### Prices or key fields look wrong or are blank
-
-If a vehicle appears but important info is missing:
-
-- **Open the vehicle in the admin**
-  - Check that the price, mileage, and other fields are actually filled in.
-- **Confirm the latest import**
-  - If data comes from CSV imports, verify the latest file includes price and that the import job completed without errors.
-- **Check multiple vehicles**
-  - If only one or two vehicles are affected, the issue is likely with those specific records, not the page layout.
-
-If fields are present in the admin but not visible on the site, a developer may need to adjust the vehicle detail template to output them.
-
-## Advanced (developers)
-
-This section is for theme or plugin developers extending SDAS Inventory. Site admins can skip it.
-
-### Using shortcodes in theme templates
-
-Use `do_shortcode` in PHP to embed SDAS Inventory shortcodes inside templates while the theme controls layout and classes.
-
-<CodeGroup tabs="Listing page,Vehicle detail,Compare,Saved,Homepage">
-
-```php
-<?php
-// page-inventory.php
-
-get_header();
-?>
-
-<main id="primary" class="site-main site-main--inventory">
-
-  <header class="inventory-page-header">
-    <h1 class="inventory-page-title"><?php the_title(); ?></h1>
-  </header>
-
-  <section class="inventory-page-search">
-    <?php echo do_shortcode('[sdas_vehicle_search]'); ?>
-  </section>
-
-  <section class="inventory-page-grid">
-    <?php echo do_shortcode('[sdas_vehicle_grid]'); ?>
-  </section>
-
-</main>
-
-<?php
-get_footer();
-```
-
-```php
-<?php
-// single-sdas-vehicle.php
-
-get_header();
-?>
-
-<main id="primary" class="site-main site-main--vehicle-detail">
-
-  <?php while (have_posts()) : the_post(); ?>
-
-    <article <?php post_class('vehicle-detail'); ?>>
-
-      <header class="vehicle-detail-header">
-        <h1 class="vehicle-title"><?php the_title(); ?></h1>
-      </header>
-
-      <section class="vehicle-detail-gallery">
-        <?php echo do_shortcode('[sdas_vehicle_gallery]'); ?>
-      </section>
-
-      <section class="vehicle-detail-specs">
-        <?php echo do_shortcode('[sdas_vehicle_spec_sheet]'); ?>
-      </section>
-
-      <section class="vehicle-detail-payment">
-        <?php echo do_shortcode('[sdas_payment_calculator]'); ?>
-      </section>
-
-      <section class="vehicle-detail-similar">
-        <h2 class="section-title">Similar vehicles</h2>
-        <?php echo do_shortcode('[sdas_similar_vehicles]'); ?>
-      </section>
-
-    </article>
-
-  <?php endwhile; ?>
-
-</main>
-
-<?php
-get_footer();
-```
-
-```php
-<?php
-// page-vehicle-compare.php
-
-get_header();
-?>
-
-<main id="primary" class="site-main site-main--vehicle-compare">
-
-  <header class="compare-page-header">
-    <h1 class="compare-page-title"><?php the_title(); ?></h1>
-  </header>
-
-  <section class="compare-page-content">
-    <?php echo do_shortcode('[sdas_vehicle_compare]'); ?>
-  </section>
-
-</main>
-
-<?php
-get_footer();
-```
-
-```php
-<?php
-// page-saved-vehicles.php
-
-get_header();
-?>
-
-<main id="primary" class="site-main site-main--saved-vehicles">
-
-  <header class="saved-vehicles-header">
-    <h1 class="saved-vehicles-title"><?php the_title(); ?></h1>
-  </header>
-
-  <section class="saved-vehicles-list">
-    <?php echo do_shortcode('[sdas_saved_vehicles]'); ?>
-  </section>
-
-</main>
-
-<?php
-get_footer();
-```
-
-```php
-<?php
-// front-page.php
-
-get_header();
-?>
-
-<main id="primary" class="site-main site-main--front-page">
-
-  <section class="homepage-inventory-strip homepage-inventory-strip--slider">
-    <div class="container">
-      <header class="strip-header">
-        <h2 class="strip-title">Featured inventory</h2>
-      </header>
-      <div class="strip-content">
-        <?php echo do_shortcode('[sdas_vehicle_slider]'); ?>
-      </div>
-    </div>
-  </section>
-
-  <section class="homepage-featured-vehicle">
-    <div class="container">
-      <header class="strip-header">
-        <h2 class="strip-title">Spotlight vehicle</h2>
-      </header>
-      <div class="strip-content">
-        <?php echo do_shortcode('[sdas_featured_vehicle]'); ?>
-      </div>
-    </div>
-  </section>
-
-</main>
-
-<?php
-get_footer();
-```
-
-</CodeGroup>
-
-### Plugin–theme responsibilities
-
-For a deeper, developer-focused view of fields, hooks, and back-end integration, use the main SDAS Inventory reference.
+## Related Documentation
 
 <Columns cols={2}>
 
 <Card
-  title="SDAS Inventory (developer reference)"
-  href="/plugins/sdas-inventory"
-  icon="database"
-  cta="View developer docs"
-  horizontal="true"
->
+  title="Vehicle Filters (front end)"
+  href="/plugins/sdas-vehicle-filters-front-end"
+  icon="monitor"
+  cta="Wire up the filter UI"
+/>
 
-Deep dive into fields, hooks, shortcode classes, and integration patterns for SDAS Inventory.
-
-</Card>
+<Card
+  title="SDAS Landing Pages"
+  href="/plugins/sdas-landing-pages"
+  icon="file-text"
+  cta="Create high-conversion pages"
+/>
 
 </Columns>
