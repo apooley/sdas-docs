@@ -1,189 +1,81 @@
 ---
-title: SDAS CSV Importer plugin
-description: Understand how the SDAS CSV Importer plugin processes vehicle CSV data, schedules background imports and cleanup, and manages image re-processing.
+title: SDAS CSV Importer
+description: User guide for the SDAS CSV Importer plugin, covering inventory feed configuration, background processing, and image optimization.
 ---
 
 ## Overview
 
-SDAS CSV Importer loads vehicle data from CSV files into the SDAS Inventory custom post type and runs the import work in the background. It also coordinates image re-processing and maintains its own database tables.
+The SDAS CSV Importer is a robust tool designed to automate the ingestion of vehicle inventory data from external CSV feeds. It handles the entire lifecycle of an import, from fetching the remote file and parsing its contents to managing background processing and optimizing vehicle images for the web.
 
-The main plugin file is `wp-content/plugins/sdas-csv-importer/sdas-csv-importer.php`. From there, the plugin wires the import pipeline, background jobs, and database layer.
+## Admin Interface and Configuration
 
-<Callout kind="info">
+The importer is managed through two primary screens located under the **SDAS** menu in the WordPress admin.
 
-SDAS CSV Importer depends on SDAS Inventory. Activate SDAS Inventory before you activate this plugin, otherwise vehicle import operations and related custom post types will not be available.
+### Import Settings
 
-</Callout>
+The **Import Settings** screen (`SDAS -> Import Settings`) is where you configure the core behavior of the inventory synchronization:
 
-## Core responsibilities
+-   **Inventory Feed**: Provide the URL to your remote CSV inventory feed. You can also define a list of **Allowed Feed Domains** to enhance security.
+-   **Import Schedule**: Choose how frequently the importer should check for updates (e.g., Hourly, Twice Daily, Daily).
+-   **Missing Vehicle Action**: Define what happens to vehicles that are present in your WordPress site but missing from the latest CSV feed. Options include:
+    -   **Do Nothing**: Keep the vehicle as is.
+    -   **Mark as Draft**: Unpublish the vehicle but keep the data.
+    -   **Delete**: Permanently remove the vehicle from the site.
+-   **Performance Tuning**: Adjust the **Chunk Size** (number of vehicles processed per background batch) to balance import speed with server stability.
+-   **Notifications**: Set a **Notification Email** to receive alerts if an import fails or encounters significant errors.
 
-SDAS CSV Importer covers four main areas:
+### Image Handling and Optimization
 
-- Parsing and importing vehicle CSV data into SDAS Inventory
-- Running import work through background processing
-- Coordinating image re-processing and ReImage API integration
-- Managing scheduled jobs and plugin-specific database tables
+The importer includes sophisticated image processing capabilities, configurable via the **Images** tab in settings:
 
-Use this page as a reference when you need to trace import behavior, debug cron jobs, or locate the correct implementation file during development.
+-   **Storage Strategy**: Choose whether to **Download images to the Media Library** (better for SEO and reliability) or store them as **External URLs** (faster initial import).
+-   **Stock Image Filtering**: Automatically exclude generic stock images from your galleries by detecting "stock_image" patterns in URLs.
+-   **WPCompress Integration**: Enable CDN-based image optimization, allowing you to serve compressed, WebP-formatted images directly from the WPCompress network.
+-   **Re-Image Integration**: Connect to the Re-Image API to automatically process and enhance vehicle photos during the import process.
 
-## Architecture by focus area
+## The Import Process
 
-Use the tabs below to explore the plugin from three perspectives: the import pipeline, background jobs, and source files.
+The importer operates as a multi-stage pipeline designed for reliability and performance.
 
-<Tabs>
+1.  **Fetch & Parse**: The system retrieves the CSV file from the configured URL and parses it into structured data.
+2.  **Queueing**: Instead of processing everything at once, the importer adds vehicles to a background queue.
+3.  **Background Processing**: Using the WordPress Cron system and Action Scheduler, the importer processes the queue in small "chunks." This prevents server timeouts and ensures the site remains responsive for visitors.
+4.  **Data Mapping**: CSV columns are automatically mapped to the SDAS Inventory schema, including complex attributes like mechanical specs, pricing, and features.
+5.  **Image Pipeline**: As vehicles are imported, their images are sent to the image processing pipeline (WPCompress or Re-Image) for optimization.
+6.  **Cleanup**: After the import completes, the system performs a cleanup of temporary data and executes the "Missing Vehicle Action" if configured.
 
-  <Tab title="Import pipeline" icon="database">
+## Monitoring and Troubleshooting
 
-  The import pipeline is responsible for converting CSV rows into SDAS Inventory entries and queuing work for background processing.
+### Import Logs
 
-  <Callout kind="info">
+The **Import Logs** screen (`SDAS -> Import Logs`) provides a detailed history of all synchronization attempts. You can monitor:
 
-  The import pipeline targets the SDAS Inventory custom post type. The exact field mapping between CSV columns and inventory fields lives in the importer implementation, not in this reference.
+-   **Status**: See at a glance if an import was successful, completed with warnings, or failed.
+-   **Details**: Drill down into specific log entries to see which vehicles were added, updated, or skipped.
+-   **Log Levels**: Adjust the verbosity of logging (Error, Warning, Info, Debug) in settings to help diagnose complex issues.
 
-  </Callout>
+### Common Troubleshooting Steps
 
-  At a high level, the pipeline does the following:
+-   **Verify Cron**: Ensure that WordPress Cron is functioning correctly, as it is required to drive the background import batches.
+-   **Check Feed Access**: Confirm that the web server can reach the remote CSV URL and that the domain is in the "Allowed Feed Domains" list.
+-   **Monitor Memory**: If imports are failing on large files, try reducing the **Chunk Size** in settings.
 
-  - Reads CSV rows representing vehicle data
-  - Validates and normalizes row content
-  - Queues rows for background processing
-  - Writes vehicle records into the SDAS Inventory custom post type
-  - Triggers image-related work for vehicles that include image references
+## Related Documentation
 
-  The `ImportProcessor.php` file handles the heavy lifting of processing rows in the background. Use this file as your starting point when you need to:
+<Columns cols={2}>
 
-  - Inspect how a CSV row becomes a vehicle record
-  - Add custom logic to the import flow
-  - Instrument logging around imports
+<Card
+  title="SDAS Inventory"
+  href="/plugins/sdas-inventory"
+  icon="layout-grid"
+  cta="Manage vehicle data"
+/>
 
-  <CodeGroup tabs="Main plugin file,Import processor">
+<Card
+  title="SDAS System Overview"
+  href="/architecture/sdas-system-overview"
+  icon="layout-dashboard"
+  cta="Understand the architecture"
+/>
 
-  ```bash
-  # Main plugin bootstrap
-  wp-content/plugins/sdas-csv-importer/sdas-csv-importer.php
-  ```
-
-  ```bash
-  # Import pipeline logic entry point
-  wp-content/plugins/sdas-csv-importer/ImportProcessor.php
-  ```
-
-  </CodeGroup>
-
-  </Tab>
-
-  <Tab title="Background jobs" icon="clock">
-
-  Background jobs keep CSV imports and related cleanup work off the main request cycle. This reduces page load impact while large CSV files are processed.
-
-  The plugin schedules at least two recurring jobs:
-
-  - An **hourly job** dedicated to processing CSV imports
-  - A **daily job** that cleans up plugin-related data
-
-  The hourly job uses the cron hook `sdas_csv_import_hourly`. When this hook fires, the plugin advances the import queue using `ImportProcessor.php`, processing pending rows until the batch completes or limits are reached.
-
-  <CodeGroup tabs="Hourly import cron,Daily cleanup">
-
-  ```bash
-  # Hourly cron hook used to drive CSV imports
-  sdas_csv_import_hourly
-  ```
-
-  ```bash
-  # Daily cleanup job (implemented in plugin code)
-  # Runs once per day to remove stale or temporary data
-  # Exact hook name and behavior are defined in Cron/CronManager.php
-  ```
-
-  </CodeGroup>
-
-  The `Cron/CronManager.php` file coordinates registration of these cron hooks, ensures they are scheduled, and points them to the appropriate handlers in the import and cleanup logic.
-
-  <Callout kind="info">
-
-  If you troubleshoot missing imports or unexpected backlogs, verify that WordPress cron is running and that the `sdas_csv_import_hourly` hook appears in your scheduled events. The plugin relies on cron to advance the import queue and to run daily cleanup.
-
-  </Callout>
-
-  The daily cleanup job removes stale or temporary data created during previous imports. This might include transient records or intermediate data structures used by the importer or image processor.
-
-  </Tab>
-
-  <Tab title="Source map" icon="folder">
-
-  This section maps confirmed key files and helpers so you can navigate the plugin source quickly.
-
-  <CodeGroup tabs="Core files,Background processing,Images & keys">
-
-  ```bash
-  # Core plugin entry
-  wp-content/plugins/sdas-csv-importer/sdas-csv-importer.php
-  ```
-
-  ```bash
-  # Background import processor
-  wp-content/plugins/sdas-csv-importer/ImportProcessor.php
-
-  # Cron coordination
-  wp-content/plugins/sdas-csv-importer/Cron/CronManager.php
-  ```
-
-  ```bash
-  # Image re-processing pipeline
-  wp-content/plugins/sdas-csv-importer/ReImageProcessor.php
-  ```
-
-  </CodeGroup>
-
-  In addition to these files, the plugin creates and maintains its own database tables via `Database::create_tables()`. This method is responsible for installing and updating the tables the importer needs to track its work.
-
-  <Callout kind="info">
-
-  `Database::create_tables()` runs from within the plugin to create the tables required for imports. If you deploy to a new environment, ensure the plugin activation or upgrade path that calls this method has executed before running imports.
-
-  </Callout>
-
-  The helper function `sdas_csv_get_reimage_api_key()` provides access to a ReImage API key and coordinates migration from any legacy storage to secure token storage managed by SDAS Core.
-
-  </Tab>
-
-</Tabs>
-
-## Image re-processing and ReImage integration
-
-Image work is handled by `ReImageProcessor.php`, which integrates with ReImage and respects existing optimization state such as WPCompress. The processor is responsible for re-processing images associated with imported vehicles.
-
-When images require re-processing, the importer uses `ReImageProcessor.php` to perform the work in the background, coordinating with any relevant optimization or compression state that already exists in the site.
-
-`sdas_csv_get_reimage_api_key()` retrieves the ReImage API key for use by the image processor and migrates legacy keys into SDAS Core secure token storage when necessary. This avoids storing keys directly in plain text configuration.
-
-<Callout kind="info">
-
-If you rotate your ReImage API key, update it through the mechanism that feeds `sdas_csv_get_reimage_api_key()`. The helper will continue to store and retrieve the key from SDAS Core secure storage, so code that calls the helper does not change.
-
-</Callout>
-
-## Database tables
-
-SDAS CSV Importer maintains dedicated database tables to support its import queue and related metadata. The method `Database::create_tables()` encapsulates table creation and upgrades.
-
-Typical call sites for `Database::create_tables()` include plugin activation or upgrade routines. When you debug schema issues or add new fields for import tracking, update this method and run the relevant activation or upgrade flow.
-
-If you clone environments or restore from backups, confirm that the tables created by `Database::create_tables()` exist and match the current plugin version before running large CSV imports.
-
-## Operational notes
-
-<Callout kind="info">
-
-SDAS CSV Importer assumes that WordPress pseudo-cron is running reliably. If your site uses real cron via a system scheduler, ensure it triggers `wp-cron.php` frequently enough for hourly and daily jobs to run on time.
-
-</Callout>
-
-For large CSV files or frequent imports:
-
-- Monitor the runtime of the `sdas_csv_import_hourly` job to keep throughput in line with your expectations.
-- Verify that the database tables managed by `Database::create_tables()` are present and not corrupted before pushing heavy workloads.
-- Check `ImportProcessor.php`, `Cron/CronManager.php`, and `ReImageProcessor.php` first when debugging import behavior, timing, or image handling.
-
-These touchpoints give you a consistent starting map when you extend the importer, add logging, or analyze production issues with CSV-based vehicle imports.
+</Columns>

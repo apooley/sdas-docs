@@ -1,229 +1,80 @@
 ---
-title: SDAS CRM Connector (dev)
-description: Technical reference for the SDAS CRM Connector plugin, its event hooks, and internal sync queue actions in the SDAS lead pipeline.
+title: SDAS CRM Connector
+description: User guide for the SDAS CRM Connector plugin, covering lead synchronization, Microsoft Dynamics 365 integration, and field mapping.
 ---
 
-## Purpose and position in the pipeline
+## Overview
 
-SDAS CRM Connector bridges SDAS events from WordPress into your downstream CRM or DMS by listening to SDAS core actions and queuing asynchronous sync jobs.
+The SDAS CRM Connector is a powerful integration tool that bridges the gap between your WordPress-based lead capture and your external CRM or DMS. It automatically synchronizes leads, vehicle data, and sales events to ensure your sales team has the most up-to-date information in their primary CRM tool.
 
-Within the SDAS lead pipeline, the connector sits after lead and vehicle events are produced by SDAS Core and related plugins, and before data leaves WordPress for your external CRM. It does not collect leads itself; instead, it reacts to SDAS events such as leads being submitted, vehicle descriptions being generated, and vehicles being marked as sold.
+## Microsoft Dynamics 365 Integration
 
-At runtime, WordPress loads the plugin from:
+The connector is specifically optimized for **Microsoft Dynamics 365**, providing a deep, automated integration that handles complex data mapping and validation.
 
-- Bootstrap file: `wp-content/plugins/sdas-crm-connector/sdas-crm-connector.php`
-- Main plugin class and hook registration: `wp-content/plugins/sdas-crm-connector/includes/Plugin.php`
-- Queue management and Action Scheduler bindings: `wp-content/plugins/sdas-crm-connector/includes/Queue/QueueManager.php`
+### Authentication and Setup
 
-<Callout kind="info">
+The connector uses secure **OAuth2** authentication to connect to your Dynamics 365 organization.
 
-SDAS CRM Connector synchronizes data asynchronously using Action Scheduler jobs. SDAS requests that trigger these events should complete quickly; sync retries and backoff happen in the background.
+1.  **Connect**: Navigate to `SDAS -> CRM Settings` and click the "Connect to Dynamics" button.
+2.  **Authorize**: You will be redirected to the Microsoft Online login page to authorize the SDAS application.
+3.  **Configure**: Once connected, you can define the **Destination Table** (e.g., Leads, Contacts) where new leads should be created.
 
-</Callout>
+### Intelligent Field Mapping
 
-## Hook registration and lifecycle
+The system includes an **Intelligent Mapping** engine that automatically aligns your WordPress form fields with your Dynamics schema.
 
-`Plugin::init_hooks` wires the connector into SDAS by subscribing to three SDAS actions and forwarding payloads into Action Scheduler jobs.
+-   **Automatic Detection**: The connector analyzes your Dynamics entity schema and automatically maps fields based on their type, label, and content.
+-   **Complex Field Handling**: Name and address fields are intelligently split into their respective Dynamics subfields (e.g., First Name, Last Name, Street, City).
+-   **Data Transformation**: Values are automatically transformed to match Dynamics requirements (e.g., "Yes/No" becomes boolean, dates are converted to ISO format).
+-   **Attribution Data**: Tracking identifiers like GCLID and other attribution data are automatically flattened and mapped to your Dynamics fields.
 
-### Incoming SDAS actions
+### Reviewing Mappings
 
-The connector listens to three high-level SDAS events:
+You can review and audit the current field mappings on the **Field Mapping Details** screen (`SDAS -> Field Mapping`):
 
-```php
-add_action( 'sdas_lead_submitted', [$this, 'queue_lead_sync'], 10, 2 );
-add_action( 'sdas_vehicle_description_generated', [$this, 'queue_vehicle_sync_after_description'], 10, 2 );
-add_action( 'sdas_vehicle_sold', [$this, 'queue_sale_sync'], 10, 2 );
-```
+-   **Mapping Statistics**: See a summary of how many fields are mapped across different Dynamics entities (Contact, Lead, Credit Application, Attribution Data).
+-   **Detailed Audit**: View a comprehensive table of all active mappings, including the WPForms Field ID, the target Dynamics Field, the data type, and any specialized processors being used.
 
-Each action follows the same pattern:
+## The Lead Synchronization Flow
 
-- The SDAS core or related plugins fire the action with structured arguments.
-- The CRM Connector callback (`queue_*` methods) receives those arguments.
-- The callback defers work by scheduling an internal queue action in `QueueManager`.
+The connector operates asynchronously to ensure that form submissions remain fast and reliable for your visitors.
 
-<Callout kind="info">
+1.  **Lead Capture**: A visitor submits a form on your site (e.g., a "Get a Quote" or "Credit Application" form).
+2.  **Validation & Persistence**: SDAS Core validates the lead and saves it to the WordPress database.
+3.  **Event Trigger**: The `sdas_lead_submitted` action is fired, signaling that a new lead is ready for sync.
+4.  **Queueing**: The CRM Connector receives the event and adds a "Sync Lead" job to the **Action Scheduler** queue.
+5.  **Background Sync**: The system processes the sync job in the background, performing the necessary data transformations and calling the Dynamics API to create the record.
+6.  **Error Handling**: If the sync fails (e.g., due to a network issue), the system automatically retries the job with an exponential backoff strategy.
 
-The three SDAS actions are integration points you can observe from other plugins, but the CRM Connector remains the owner of queuing CRM sync jobs. Avoid changing argument signatures or short-circuiting these hooks.
+## Vehicle and Sale Synchronization
 
-</Callout>
+In addition to leads, the connector can also synchronize inventory-related events:
 
-### `sdas_lead_submitted`
+-   **Vehicle Sync**: When a vehicle's description is generated or updated (e.g., via the AI Description Generator), the connector can sync the latest details to your CRM.
+-   **Sale Sync**: When a vehicle is marked as "Sold" in the SDAS Inventory, the connector can propagate this status change and any associated sale data to the CRM.
 
-`sdas_lead_submitted` is fired when a new lead is captured in SDAS, typically from an SDAS form submission on the front end.
+## Monitoring and Diagnostics
 
-At a high level:
+-   **Sync Status**: Monitor the status of all background sync jobs in the **Action Scheduler** (`Tools -> Scheduled Actions`).
+-   **Diagnostics**: Use the built-in diagnostic tools to test your CRM connection and verify that the Dynamics API is reachable and responding correctly.
+-   **Logging**: Detailed logs are available to help troubleshoot mapping issues or API errors.
 
-- **Producer:** SDAS Forms Extension and related lead capture flows.
-- **Timing:** Immediately after the lead is validated and persisted to the SDAS data model.
-- **Intent:** Announce that a lead is ready to be synchronized to external systems.
+## Related Documentation
 
-The CRM Connector handler `queue_lead_sync` receives two arguments (commonly a lead identifier and a data array) and schedules a `sdas_crm_sync_lead` job in Action Scheduler. The sync job encapsulates any mapping, transformation, and API calls required to push that lead into the target CRM.
-
-### `sdas_vehicle_description_generated`
-
-`sdas_vehicle_description_generated` is fired when SDAS finishes generating or updating a vehicle description, for example after an AI description job or a content update.
-
-Conceptually:
-
-- **Producer:** SDAS Inventory or related vehicle content tooling.
-- **Timing:** After a vehicle record and its description fields have been successfully updated.
-- **Intent:** Indicate that the vehicle metadata, including description, is now in a state suitable for CRM synchronization.
-
-The CRM Connector handler `queue_vehicle_sync_after_description` consumes the event payload and schedules a `sdas_crm_sync_vehicle` job. That job is responsible for syncing the latest vehicle details and description to the CRM or DMS so that sales teams see current content.
-
-### `sdas_vehicle_sold`
-
-`sdas_vehicle_sold` is fired when a vehicle is marked as sold within SDAS inventory management.
-
-In practice:
-
-- **Producer:** SDAS Inventory or any custom sales workflow that updates vehicle status.
-- **Timing:** When the status change to "sold" has been persisted in WordPress.
-- **Intent:** Propagate the sale event, including buyer and pricing context when available, to the CRM.
-
-The CRM Connector handler `queue_sale_sync` uses the sale context to schedule a `sdas_crm_sync_sale` job, which updates the external CRM with sale details, status changes, and any associated lead records.
-
-## Internal queued actions
-
-The CRM Connector uses `QueueManager` to create Action Scheduler jobs for each type of sync. These jobs decouple SDAS request handling from external CRM latency and failures.
-
-`QueueManager` schedules three internal queue actions:
-
-- `sdas_crm_sync_lead`
-- `sdas_crm_sync_vehicle`
-- `sdas_crm_sync_sale`
-
-### `sdas_crm_sync_lead` (lead sync job)
-
-`sdas_crm_sync_lead` represents a unit of work to push a single SDAS lead into the external CRM.
-
-Typical responsibilities of the job include:
-
-- Loading the SDAS lead record based on identifiers passed from `sdas_lead_submitted`.
-- Mapping SDAS lead fields to the CRM lead or contact schema.
-- Executing network calls to the CRM API to create or update the corresponding record.
-- Handling transient failures with retries, backoff, or error logging.
-
-<Callout kind="info">
-
-Because lead sync runs as a background job, short network outages or CRM rate limits usually do not affect the user who submitted the form. Monitor the Action Scheduler queue and the connector logs to detect persistent failures.
-
-</Callout>
-
-### `sdas_crm_sync_vehicle` (vehicle sync job)
-
-`sdas_crm_sync_vehicle` encapsulates a vehicle-level sync operation.
-
-The job typically:
-
-- Loads a vehicle record after `sdas_vehicle_description_generated`.
-- Extracts key inventory attributes such as VIN, stock number, pricing, photos, and descriptions.
-- Aligns those attributes to the CRM or DMS vehicle representation.
-- Updates or creates corresponding vehicle entries in the external system.
-
-When vehicle descriptions are generated or improved, `sdas_crm_sync_vehicle` ensures those updates flow through to CRM tools used by sales and marketing.
-
-### `sdas_crm_sync_sale` (sale sync job)
-
-`sdas_crm_sync_sale` carries out synchronization of sale events.
-
-Within the job:
-
-- The job retrieves the vehicle and sale context associated with `sdas_vehicle_sold`.
-- Leads or contacts related to the sale may be cross-referenced to update their lifecycle stage in the CRM.
-- Sale data such as sale date, final price, gross, salesperson, and store can be transmitted to the CRM (subject to implementation).
-
-This job keeps the CRM aligned with SDAS on inventory disposition and deal outcomes.
-
-## Listening to SDAS hooks from another plugin
-
-You can attach your own listeners to SDAS actions for auditing, analytics, or side effects without interfering with the CRM Connector. For example, a custom plugin might log every submitted lead to an internal audit log.
-
-Use standard WordPress `add_action` calls with a later priority so that the CRM Connector can still enqueue its jobs as expected.
-
-<CodeGroup tabs="PHP">
-
-```php
-<?php
-/**
- * Plugin Name: SDAS Lead Audit Logger
- * Description: Logs SDAS leads for internal auditing without affecting CRM Connector behavior.
- */
-
-add_action(
-    'sdas_lead_submitted',
-    'sdas_lead_audit_logger_handle_lead',
-    20,
-    2
-);
-
-/**
- * Audit handler for SDAS lead submissions.
- *
- * @param int   $lead_id   SDAS lead identifier.
- * @param array $lead_data Associative array of lead fields from SDAS.
- */
-function sdas_lead_audit_logger_handle_lead( $lead_id, $lead_data ) {
-    // Example: write a minimal audit entry to a custom log file.
-    $message = sprintf(
-        '[%s] Lead submitted: ID=%d, Email=%s, Source=%s',
-        gmdate( 'Y-m-d H:i:s' ),
-        $lead_id,
-        isset( $lead_data['email'] ) ? $lead_data['email'] : '(unknown)',
-        isset( $lead_data['source'] ) ? $lead_data['source'] : '(unknown)'
-    );
-
-    error_log( $message, 3, WP_CONTENT_DIR . '/logs/sdas-lead-audit.log' );
-
-    // Keep work here non-blocking; do not make slow network calls.
-}
-```
-
-</CodeGroup>
-
-<Callout kind="info">
-
-Keep custom `sdas_lead_submitted` listeners fast and non-blocking. If you need to perform slow operations or external API calls, schedule your own Action Scheduler job instead of doing work inline, so that SDAS form submissions stay responsive.
-
-</Callout>
-
-## Related components and architecture
-
-Use these pages to understand the full SDAS lead and CRM flow:
-
-<Columns cols={3}>
-
-<Card
-  title="CRM Connector (front end)"
-  href="/plugins/sdas-crm-connector-front-end"
-  icon="monitor"
-  cta="View front-end behavior"
->
-
-Learn how the CRM Connector exposes front-end endpoints and UX that eventually emit the SDAS hooks documented here.
-
-</Card>
+<Columns cols={2}>
 
 <Card
   title="SDAS Forms Extension"
   href="/plugins/sdas-forms-extension"
   icon="file-text"
-  cta="Inspect lead capture"
->
-
-See how SDAS forms collect lead data and fire `sdas_lead_submitted`, which SDAS CRM Connector consumes.
-
-</Card>
+  cta="Capture lead data"
+/>
 
 <Card
-  title="System overview"
-  href="/architecture/sdas-system-overview"
-  icon="layout-dashboard"
-  cta="Explore architecture"
->
-
-Review the overall SDAS architecture to see where CRM Connector fits among core, forms, inventory, and tracking components.
-
-</Card>
+  title="SDAS Inventory"
+  href="/plugins/sdas-inventory"
+  icon="layout-grid"
+  cta="Manage vehicle data"
+/>
 
 </Columns>
