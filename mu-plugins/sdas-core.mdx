@@ -130,6 +130,46 @@ The `SDAS_Database_Indexes` class manages custom database indexes for SDAS table
 
 </Tabs>
 
+## Schema emission system
+
+SDAS Core implements a centralized schema emission system that ensures high-quality structured data for dealership-specific content while maintaining compatibility with third-party SEO plugins.
+
+### Implementation in MU-Plugin
+
+The schema system is built directly into the MU-plugin to ensure it loads early and consistently across all requests. It consists of two primary components:
+
+1.  **`SDAS_Schema_Manager`**: Responsible for generating and emitting the core site graph (Organization and WebSite nodes) on the front page. It uses data from the **Dealership Settings** (Legal Name, Address, Phone, Logo) to build a valid `AutoDealer` node.
+2.  **`SDAS_SEO_Compatibility`**: An orchestration layer that detects the active SEO environment and applies the appropriate policy for indexation, canonicals, and schema suppression.
+
+### SEOPress integration and overrides
+
+SDAS Core is designed to co-exist with **SEOPress** while taking full ownership of schema on specific "SDAS-owned surfaces."
+
+#### Where SDAS overrides SEOPress
+
+On SDAS-owned surfaces, the `SDAS_SEO_Compatibility` layer actively suppresses SEOPress's automatic schema generation to prevent duplicate or conflicting JSON-LD blocks. This is achieved by hooking into SEOPress filters (e.g., `seopress_get_json_data_organization`, `seopress_schemas_auto_job_json`) and returning an empty array or string.
+
+SDAS takes ownership on the following surfaces:
+- **Front Page**: Emits the `AutoDealer` and `WebSite` graph.
+- **Vehicle Single**: Emits detailed `Car` or `Vehicle` schema.
+- **Vehicle Archive**: Emits `ItemList` schema for indexable inventory views.
+- **Landing Pages**: Emits structured content schema.
+- **Job Postings**: Emits `JobPosting` schema.
+- **FAQ Pages**: Emits `FAQPage` schema.
+
+#### Where SDAS does NOT override SEOPress
+
+- **Standard Pages/Posts**: SEOPress retains full control over schema for standard WordPress pages and blog posts.
+- **Titles and Meta**: SDAS does not override SEOPress's title or meta description logic, except for specific inventory archive requests where it may enforce a `noindex,follow` policy for non-canonical filtered views.
+- **Sitemaps**: SDAS relies on SEOPress for XML sitemap generation, though it provides the necessary data to ensure SDAS custom post types are included correctly.
+
+### Schema Console
+
+Developers can monitor the schema state via the **Schema** tab in SDAS Settings. This console provides:
+- **Surface Ownership**: A report on which plugin owns the schema for each site surface.
+- **Graph Preview**: A visual representation of the generated JSON-LD graph.
+- **Warnings**: Alerts for missing required fields (e.g., missing dealership phone or address) that would invalidate the schema.
+
 ## Related documentation
 
 <Columns cols={3}>
