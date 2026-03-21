@@ -51,7 +51,9 @@ Returns the list of models for a given make so the front end can dynamically pop
 
 Use this action when the user selects or changes the vehicle make and you need the corresponding models without reloading the page.
 
-## Action hook: `sdas_filters_applied`
+## Developer Hooks
+
+### Action: `sdas_filters_applied`
 
 When a filter request is processed in `includes/AjaxHandler.php`, the plugin fires an action so other plugins or mu-plugins can react to the applied filters and resulting inventory.
 
@@ -95,66 +97,54 @@ CSS selector for the DOM container that the front end updates with the filtered 
 
 </ParamField>
 
-<Callout kind="info">
+### Filter: `sdas_filter_query_args`
 
-The hook provides full context for analytics and tracking: what filters were applied, how many results were shown, which click IDs were involved, and which part of the page was updated.
-
-</Callout>
-
-## Listen to `sdas_filters_applied`
-
-Hook into `sdas_filters_applied` to log filter usage, send events to external systems, or adjust downstream behavior based on the applied filters and results.
-
-<CodeGroup tabs="PHP">
+Allows developers to modify the `WP_Query` arguments before the vehicle search is executed. This is useful for adding custom meta queries or adjusting the default sorting.
 
 ```php
-<?php
-// mu-plugins/sdas-filters-listener.php or inside a custom plugin.
-
-add_action( 'sdas_filters_applied', function ( array $context ) {
-    // Expected keys:
-    // - filters (array)
-    // - result_count (int)
-    // - click_ids (array)
-    // - target_selector (string)
-
-    $filters         = isset( $context['filters'] ) ? $context['filters'] : [];
-    $result_count    = isset( $context['result_count'] ) ? (int) $context['result_count'] : 0;
-    $click_ids       = isset( $context['click_ids'] ) ? (array) $context['click_ids'] : [];
-    $target_selector = isset( $context['target_selector'] ) ? (string) $context['target_selector'] : '.sdas-inventory';
-
-    // Example: write a log entry for analytics debugging.
-    error_log(
-        sprintf(
-            'SDAS filters applied: %d results, selector "%s", click IDs: %s, filters: %s',
-            $result_count,
-            $target_selector,
-            json_encode( $click_ids ),
-            json_encode( $filters )
-        )
-    );
-
-    // Example: forward an event to a custom tracking function.
-    if ( function_exists( 'sdas_tracking_record_filters' ) ) {
-        sdas_tracking_record_filters(
-            $filters,
-            $result_count,
-            $click_ids,
-            $target_selector
-        );
-    }
-} );
+add_filter('sdas_filter_query_args', function($query_args, $filters) {
+    // Example: Exclude vehicles marked as 'private'
+    $query_args['meta_query'][] = [
+        'key'     => 'is_private',
+        'value'   => 'no',
+        'compare' => '='
+    ];
+    return $query_args;
+}, 10, 2);
 ```
 
-</CodeGroup>
+### Filter: `sdas_vehicle_filters_normalized_context`
 
-After you add this listener and trigger a filter change on the front end, you should see matching entries in your PHP error log or in whatever tracking sink you implement.
+Allows developers to modify the request context, including active filters and sorting, before it is used for rendering or querying.
 
-<Callout kind="tip">
+```php
+add_filter('sdas_vehicle_filters_normalized_context', function($context) {
+    // Example: Force a specific sort order for a specific page
+    if (is_page('special-offers')) {
+        $context['active_sort'] = 'price_asc';
+    }
+    return $context;
+});
+```
 
-Keep the callback lightweight. For slow or external operations, enqueue a background task or use a queue system so the AJAX response remains fast.
+## Performance & Caching
 
-</Callout>
+SDAS Vehicle Filters uses a robust caching system based on WordPress Transients to ensure fast response times for AJAX requests.
+
+- **Query Results**: Cached for 15 minutes by default.
+- **Filter Ranges & Counts**: Cached for 1 hour by default.
+- **Cache Invalidation**: The entire filter cache is automatically cleared whenever a vehicle post is created, updated, or deleted. This ensures that visitors always see accurate inventory data.
+
+Developers can manually clear the cache using the `sdas_vf_cleanup_cache` hourly cron job or by calling `Plugin::getInstance()->cache_manager->clearAll()`.
+
+## Health Monitoring
+
+The plugin integrates with the SDAS Core health check system. It monitors:
+- **Dependency Status**: Ensures SDAS Inventory is active.
+- **AJAX Endpoints**: Verifies that all required AJAX actions are correctly registered.
+- **Widget Registration**: Tracks the number of active filter widgets.
+
+Health status can be viewed in the WordPress admin under **SDAS -> Health**.
 
 ## Related documentation
 
