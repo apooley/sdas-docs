@@ -25,6 +25,10 @@ These shortcodes build the primary discovery phase for your visitors.
 ### `[sdas_vehicle_grid]`
 Displays a grid or list of vehicles. This is the primary way to show multiple vehicles on a page.
 
+<Callout kind="info">
+**SEO Benefit**: When you place `[sdas_vehicle_grid]` on a standard WordPress page, SDAS automatically detects it and emits `CollectionPage` and `ItemList` Schema.org structured data for the vehicles shown in the grid.
+</Callout>
+
 <Callout kind="warning">
 **Grid vs. Filters**: If you are using the **SDAS Vehicle Filters** plugin, you should use `[sdas_filter_results]` instead of `[sdas_vehicle_grid]` on your main search page. `[sdas_vehicle_grid]` is best used for standalone displays (e.g., "Featured Vehicles" on the homepage) where dynamic filtering is not required.
 </Callout>

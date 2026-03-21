@@ -157,8 +157,9 @@ On SDAS-owned surfaces other than the front page, the `SDAS_SEO_Compatibility` l
 
 SDAS takes ownership on the following surfaces:
 - **Vehicle Single (VDP)**: Emits detailed `Car` or `Vehicle` schema.
-- **Vehicle Archive**: Emits `ItemList` schema for indexable inventory views.
-- **Landing Pages**: Emits structured content schema.
+- **Vehicle Archive**: Emits `ItemList` schema for indexable inventory views on the native post type archive.
+- **Vehicle Grid Pages**: Emits `CollectionPage` and `ItemList` schema on standard WordPress pages that use the `[sdas_vehicle_grid]` shortcode.
+- **Landing Pages**: Emits structured content schema (and `ItemList` schema if a vehicle grid is present).
 - **Job Postings**: Emits `JobPosting` schema.
 - **FAQ Pages**: Emits `FAQPage` schema.
 
