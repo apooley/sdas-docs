@@ -7,12 +7,27 @@ description: Learn how to show vehicle inventory on your WordPress site using SD
 
 SDAS Inventory provides a comprehensive suite of shortcodes to display vehicle data and interactive tools on your WordPress site. These shortcodes are designed to work with any theme and are compatible with modern page builders like **Breakdance**, **Beaver Builder**, and **Elementor**.
 
+This guide covers how to wire up the primary shopping journey, configure the Vehicle Detail Page (VDP), and enable personalization features like saved vehicles and comparisons.
+
+## The Visitor Journey
+
+When properly configured, SDAS Inventory supports a complete, modern car shopping experience:
+
+1.  **Discovery**: Visitors land on a main inventory page powered by `[sdas_vehicle_grid]` (often paired with `[sdas_filters]`). They browse, sort, and filter the available stock.
+2.  **Exploration**: Clicking a vehicle card takes them to the **Vehicle Detail Page (VDP)**. Here, they see high-resolution galleries, detailed specifications, and payment estimates.
+3.  **Personalization**: While browsing, visitors can click "Save" or "Compare" on specific vehicles. These choices are saved to their session.
+4.  **Decision**: Visitors navigate to dedicated "Saved Vehicles" or "Compare" pages to review their shortlisted options side-by-side before submitting a lead form.
+
 ## Core Browsing Shortcodes
 
-These shortcodes build the primary shopping journey for your visitors.
+These shortcodes build the primary discovery phase for your visitors.
 
 ### `[sdas_vehicle_grid]`
 Displays a grid or list of vehicles. This is the primary way to show multiple vehicles on a page.
+
+<Callout kind="warning">
+**Grid vs. Filters**: If you are using the **SDAS Vehicle Filters** plugin, you should use `[sdas_filter_results]` instead of `[sdas_vehicle_grid]` on your main search page. `[sdas_vehicle_grid]` is best used for standalone displays (e.g., "Featured Vehicles" on the homepage) where dynamic filtering is not required.
+</Callout>
 
 **Available Attributes:**
 
@@ -54,24 +69,24 @@ Example:
 [sdas_vehicle_search style="compact" placeholder="Search by VIN or Model..."]
 ```
 
-## Vehicle Detail Page (VDP) Shortcodes
+## Vehicle Detail Page (VDP) Setup
 
-These shortcodes are used to build or enhance individual vehicle pages.
+The VDP is the single post template for the `sdas_vehicle` custom post type. If you are using a page builder like Breakdance or Elementor, you should create a **Single Post Template** assigned to "Vehicles" and use the following shortcodes to build the layout.
 
-- **`[sdas_vehicle_gallery]`**: Displays the vehicle's photo gallery.
-- **`[sdas_vehicle_spec_sheet]`**: Outputs a structured table of vehicle specifications.
-- **`[sdas_payment_calculator]`**: Adds an interactive payment estimator for the current vehicle.
-- **`[sdas_similar_vehicles]`**: Shows a grid of related vehicles based on segment or price.
+- **`[sdas_vehicle_gallery]`**: Displays the vehicle's photo gallery. It automatically handles the main image and thumbnail slider.
+- **`[sdas_vehicle_spec_sheet]`**: Outputs a structured table of vehicle specifications (engine, transmission, dimensions, etc.).
+- **`[sdas_payment_calculator]`**: Adds an interactive payment estimator. *Note: This requires global calculator presets to be configured in SDAS Settings -> Calculator.*
+- **`[sdas_similar_vehicles]`**: Shows a grid of related vehicles based on segment or price. Useful for keeping visitors engaged if the current vehicle isn't a perfect fit.
 - **`[sdas_vdp_cta]`**: Displays a call-to-action block (e.g., "Get a Quote" or "Book a Test Drive").
 
 ## Personalization and Comparison
 
-Turn on richer shopping tools with these interactive shortcodes:
+Turn on richer shopping tools by creating dedicated pages for these interactive shortcodes:
 
-- **`[sdas_vehicle_compare]`**: Renders the side-by-side comparison view. Place this on a dedicated "Compare" page.
-- **`[sdas_compare_button]`**: Adds a button to add the current vehicle to the comparison list.
+- **`[sdas_vehicle_compare]`**: Renders the side-by-side comparison view. **You must place this on a dedicated page** (e.g., `/compare/`) and ensure the page URL is configured in SDAS Settings so the "Compare" buttons know where to link.
+- **`[sdas_compare_button]`**: Adds a button to add the current vehicle to the comparison list. (Usually placed on the VDP).
 - **`[sdas_save_vehicle_button]`**: Adds a "Save" or "Favorite" button to a vehicle.
-- **`[sdas_saved_vehicles]`**: Displays the visitor's list of saved vehicles.
+- **`[sdas_saved_vehicles]`**: Displays the visitor's list of saved vehicles. Place this on a dedicated `/saved-vehicles/` page.
 - **`[sdas_recently_viewed]`**: Shows a list of vehicles the visitor has recently browsed.
 
 ## Dynamic Content Shortcodes
@@ -83,24 +98,34 @@ These shortcodes are useful for landing pages and SEO-focused content:
 - **`[landing_page_image]`**: Displays the default image for a specific body type (configured in SDAS Inventory settings).
 - **`[landing_page_benefits]`**: Outputs a list of dealership benefits (e.g., "The Super Dave's Advantage").
 
-## Setup: get inventory live
+## Setup & QA Workflow
+
+Follow this checklist to ensure your inventory front-end is fully operational.
 
 <Steps>
 
 <Step title="Check prerequisites" icon="check-circle">
-Ensure SDAS Core and SDAS Inventory are active. Save your permalink settings once to refresh routes.
+Ensure SDAS Core and SDAS Inventory are active. Go to **Settings -> Permalinks** and click "Save Changes" to ensure the `/vehicle/` routes are registered.
 </Step>
 
 <Step title="Create your main Inventory page" icon="plus">
-Create a new page and add `[sdas_vehicle_search]` and `[sdas_vehicle_grid]`.
+Create a new page (e.g., "Inventory"). If using filters, use `[sdas_filters]` and `[sdas_filter_results]`. If not, use `[sdas_vehicle_grid]`.
 </Step>
 
-<Step title="Verify detail pages" icon="monitor">
-Click a vehicle in the grid to ensure the detail page (VDP) loads correctly.
+<Step title="Build the VDP Template" icon="layout">
+Using your theme or page builder, create a template for single `sdas_vehicle` posts. Insert the gallery, spec sheet, and calculator shortcodes.
 </Step>
 
-<Step title="Add tools" icon="settings">
-Create dedicated pages for **Saved Vehicles** and **Comparison** using their respective shortcodes.
+<Step title="Configure Utility Pages" icon="settings">
+Create dedicated pages for **Saved Vehicles** and **Compare**. Add their respective shortcodes. Go to **SDAS -> Settings -> System** and ensure the URLs for these pages are correctly mapped.
+</Step>
+
+<Step title="QA the Visitor Journey" icon="monitor">
+1. Open an incognito window and navigate to your inventory page.
+2. Verify the grid loads and pagination works.
+3. Click a vehicle to view the VDP. Verify the gallery loads and the calculator functions.
+4. Click "Save" and "Compare" on two different vehicles.
+5. Navigate to your Saved and Compare pages to verify the vehicles appear correctly.
 </Step>
 
 </Steps>

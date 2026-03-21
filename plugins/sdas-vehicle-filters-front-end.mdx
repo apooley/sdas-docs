@@ -38,6 +38,14 @@ You build your inventory search page with two shortcodes:
 
 `[sdas_filters]` renders the filter controls visitors use to narrow inventory. The plugin decides which filter types to show based on your inventory configuration.
 
+#### Primary vs. Secondary Filters
+
+In modern layouts (`topbar_chips` and `stacked_compact`), the plugin automatically splits your filters into two groups to keep the UI clean:
+- **Primary Filters**: The first 4 filters (based on your `filter_order` or the internal priority list) are shown prominently.
+- **Secondary Filters**: Any remaining filters are hidden behind a "More Filters" or "More Options" toggle button.
+
+When choosing your `filter_types`, put your most important filters (like Make, Model, Price, Body Type) first so they appear as Primary Filters.
+
 **Available Attributes:**
 
 | Attribute | Default | Description |

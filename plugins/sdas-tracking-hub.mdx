@@ -11,45 +11,64 @@ SDAS Tracking Hub provides a centralized system for managing and dispatching tra
 
 All SDAS Tracking Hub functionalities are accessible through the centralized **SDAS** menu in the WordPress admin sidebar. Navigate to **SDAS -> Tracking Hub** to access the main configuration and monitoring interface.
 
-The Tracking Hub interface is organized into four distinct tabs, each serving a specific purpose:
+The Tracking Hub interface is organized into four distinct tabs:
 
--   **Overview**: Provides a high-level summary of the Tracking Hub's status, including any critical alerts or warnings regarding its operation. This is your first stop for quickly assessing the health of your tracking setup.
--   **Settings**: Configure the core behavior of the Tracking Hub. This includes setting up API credentials for external platforms (Google Ads, Meta, GA4), defining log levels, and managing other global tracking options. Sensitive credentials are securely stored using SDAS Core's token storage.
--   **Event Config**: This is where you define and manage the specific tracking events that the hub will process. You can configure how events are mapped to external platforms, set up conditions for when they fire, and ensure all necessary data fields are captured. The system provides validation to highlight events missing required fields or with incorrect configurations.
--   **Logs**: Displays a detailed log of all tracking events processed by the hub, including their delivery status to external platforms. This tab is invaluable for debugging, verifying event delivery, and troubleshooting any issues that may arise.
+-   **Overview**: Provides a high-level summary of the Tracking Hub's status, including any critical alerts or warnings regarding its operation.
+-   **Settings**: Configure the core behavior of the Tracking Hub, including API credentials for external platforms (Google Ads, Meta, GA4).
+-   **Event Config**: Define and manage the specific tracking events that the hub will process.
+-   **Logs**: Displays a detailed log of all tracking events processed by the hub, including their delivery status.
 
-### Admin Notices and Troubleshooting
+## Configuring Tracking Events
 
-The Tracking Hub actively displays admin notices to inform you of important runtime prerequisites and potential issues. These notices can highlight scenarios such as:
+The **Event Config** tab is where you map internal SDAS events (like a form submission or a VDP view) to the specific formats required by external platforms.
 
--   **Feature Flag Disabled**: The Tracking Hub's core functionality might be turned off.
--   **WPForms Missing**: If lead tracking is enabled, but WPForms (or another integrated form plugin) is not active.
--   **Action Scheduler Missing**: The background processing system required for event queuing and retries is not available.
--   **REST Endpoint Unavailable**: The `/sdas/v1/track` endpoint, which receives front-end events, is not accessible.
--   **No Events Configured / All Events Disabled**: No tracking events are set up or enabled, meaning no data will be sent.
--   **Invalid Events**: Specific events are misconfigured, preventing their proper processing.
+### Workflow: Creating a New Event
 
-Always review these notices to ensure your tracking setup is operating correctly.
+1.  **Add New Event**: Click the "Add New Event" button in the Event Config tab.
+2.  **Select Trigger**: Choose the internal SDAS event that should trigger this tracking payload. Common triggers include:
+    -   `sdas_lead_submitted` (Fires when a WPForms lead is captured)
+    -   `sdas_vdp_viewed` (Fires when a visitor views a vehicle detail page)
+    -   `sdas_search_performed` (Fires when a visitor uses the inventory search)
+3.  **Select Destination**: Choose where this event should be sent (e.g., GA4, Google Ads, Meta Conversions API).
+4.  **Map Fields**: Depending on the destination, you will need to map internal data to the platform's required fields.
+    -   *Example for GA4 `generate_lead`*: Map the internal `lead_value` to the GA4 `value` field, and set the `currency` to your local currency (e.g., `CAD`).
+    -   *Example for Meta `Lead`*: Ensure the `email` and `phone` fields are mapped so Meta can perform advanced matching. The Tracking Hub automatically hashes these values before sending them to Meta.
+5.  **Set Conditions (Optional)**: You can restrict when an event fires. For example, you might only want to send a Google Ads conversion if the lead came from a specific form ID.
+6.  **Save and Enable**: Save the configuration and ensure the toggle switch is set to "Active".
 
-## Server-Side Tracking Endpoint: `POST /wp-json/sdas/v1/track`
+### Example: A Correctly Configured GA4 Lead Event
 
-The Tracking Hub exposes a dedicated REST API endpoint for receiving tracking events from your front-end. This server-side approach enhances data reliability and security compared to client-side-only tracking.
+A typical GA4 `generate_lead` event configuration looks like this:
+-   **Trigger**: `sdas_lead_submitted`
+-   **Destination**: Google Analytics 4
+-   **Event Name**: `generate_lead`
+-   **Parameters**:
+    -   `value`: `[lead_estimated_value]` (Dynamic tag)
+    -   `currency`: `CAD`
+    -   `form_id`: `[form_id]` (Dynamic tag)
+
+## Verifying Event Delivery (Logs)
+
+The **Logs** tab is your primary tool for QA and troubleshooting. Because the Tracking Hub processes events server-side via Action Scheduler, you cannot rely solely on the browser's network tab to verify delivery.
+
+### Workflow: Testing a Lead Event
+
+1.  **Submit a Test Lead**: Go to your public website and submit a test lead through one of your configured forms.
+2.  **Check the Logs Tab**: Navigate to **SDAS -> Tracking Hub -> Logs**.
+3.  **Find the Event**: Look for a new entry corresponding to your test submission. The log table shows the Event Name, Destination, Status, and Timestamp.
+4.  **Inspect the Payload**: Click "View Details" on the log entry. This opens a modal showing the exact JSON payload that was sent to the external platform, as well as the HTTP response code received back.
+5.  **Verify Success**: A status of `Success` (HTTP 200/204) means the platform accepted the event.
+6.  **Troubleshoot Failures**: If the status is `Failed`, the details modal will show the error message returned by the platform (e.g., "Invalid API Key" or "Missing Required Parameter"). The Tracking Hub will automatically attempt to retry failed events based on its internal schedule.
+
+## Server-Side Tracking Endpoint
+
+The Tracking Hub exposes a dedicated REST API endpoint for receiving tracking events from your front-end. 
 
 -   **Method**: `POST`
--   **Route**: `/sdas/v1/track`
--   **Purpose**: To receive JSON payloads containing tracking event data from your website's front-end or other services.
+-   **Route**: `/wp-json/sdas/v1/track`
+-   **Purpose**: To receive JSON payloads containing tracking event data from your website's front-end (e.g., VDP views, button clicks).
 
-Front-end implementations (e.g., custom JavaScript or the SDAS Tracking Hub front-end plugin) send event data to this endpoint. The hub then processes this data, normalizes it, and dispatches it to the configured external analytics and advertising platforms.
-
-## External Integrations
-
-The SDAS Tracking Hub supports integration with several key external platforms:
-
--   **Google Analytics 4 (GA4)**: Sends event data to your GA4 property for comprehensive website analytics.
--   **Google Ads**: Facilitates conversion tracking for your Google Ads campaigns, allowing for better ad performance measurement and optimization.
--   **Meta (Facebook) Conversions API**: Enables server-side event sending to Meta, improving the accuracy of your Facebook and Instagram ad targeting and measurement, especially in privacy-centric environments.
-
-Configuration for these integrations, including API keys and specific event mappings, is managed within the **Settings** and **Event Config** tabs of the Tracking Hub admin interface.
+Front-end implementations (like the SDAS Tracking Hub front-end plugin) send event data to this endpoint. The hub then processes this data, normalizes it, and dispatches it to the configured external platforms according to your Event Config rules.
 
 ## Related Documentation
 

@@ -13,22 +13,57 @@ All SDAS Forms Extension functionalities are accessible through the centralized 
 
 ### SDAS -> Forms
 
-This section provides a tabbed interface for configuring how forms integrate with SDAS, defining lead types, and setting up ADF emails. The available tabs are:
+This section provides a tabbed interface for configuring how forms integrate with SDAS, defining lead types, and setting up ADF emails.
 
--   **Form Mapping**: Configure how fields from your WPForms map to the standardized SDAS lead schema. This ensures consistency in lead data regardless of the source form.
--   **System Mapping**: Define mappings for system-level and tracking fields (e.g., UTM parameters, GCLID, referrer URL) that are automatically captured with each lead. This tab helps in attributing lead sources and understanding user behavior.
--   **Lead Types**: Manage custom lead types. This allows you to categorize leads based on their origin or intent, which can be useful for routing and reporting.
--   **ADF Emails**: Set up and configure ADF (Auto-lead Data Format) emails. This feature is essential for sending standardized lead data to external systems like CRMs or other dealership management systems.
+#### Form Mapping Workflow
+
+The **Form Mapping** tab is where you connect your front-end WPForms to the standardized SDAS lead schema. This ensures consistency in lead data regardless of the source form.
+
+**How to map a form:**
+1.  Ensure you have created a form in WPForms (e.g., "Contact Us" or "Test Drive Request").
+2.  In the **Form Mapping** tab, select your form from the dropdown.
+3.  For each SDAS standard field (First Name, Last Name, Email, Phone, Comments), select the corresponding field from your WPForms form.
+4.  **Important**: If your form uses a single "Name" field instead of separate First/Last name fields, map it to the "First Name" field. The SDAS CRM Connector will automatically attempt to split it later if needed.
+5.  Save your mappings.
+
+#### System Mapping
+
+The **System Mapping** tab defines mappings for system-level and tracking fields (e.g., UTM parameters, GCLID, referrer URL) that are automatically captured with each lead. This tab helps in attributing lead sources and understanding user behavior. You typically only need to configure this once.
+
+#### Lead Types
+
+The **Lead Types** tab allows you to manage custom lead categories (e.g., "Sales", "Service", "Finance"). 
+
+**Why this matters:**
+Assigning a specific Lead Type to a form helps with routing and reporting. For example, you can configure your CRM Connector to route "Service" leads to a different department or ADF email address than "Sales" leads.
+
+#### ADF Emails
+
+The **ADF Emails** tab is used to set up and configure ADF (Auto-lead Data Format) emails. This feature is essential for sending standardized XML-based lead data to external systems like CRMs or other dealership management systems that don't support direct API integration.
+
+**How to configure an ADF Email:**
+1.  Click "Add New ADF Email".
+2.  Enter the destination email address provided by your CRM vendor.
+3.  Select which **Lead Types** should trigger this email (e.g., only send "Sales" leads).
+4.  Configure the ADF specific fields (Vendor Name, Contact Name) as required by your receiving system.
 
 ### SDAS -> Leads
 
 This is the central inbox for all leads captured through SDAS Forms Extension. It provides a comprehensive view of submitted leads and tools for managing them.
 
+#### The Lead List View
+
 -   **Lead Views**: Filter leads by `All Leads`, `My Leads` (assigned to the current user), or `Unassigned` leads. This helps in organizing and prioritizing lead follow-up.
--   **Filters**: Utilize various filters such as `status`, `type`, `assignment`, and `priority` to quickly find specific leads.
--   **Pagination**: Leads are paginated, typically showing 50 leads per page, to ensure efficient browsing of large datasets.
+-   **Filters**: Utilize various filters such as `status` (New, Contacted, Closed), `type`, `assignment`, and `priority` to quickly find specific leads.
 -   **CRM Sync Status**: When the SDAS CRM Connector is active, this view displays the synchronization status of leads with external CRM systems, indicating whether a lead has been successfully synced, is pending, or has failed.
--   **Operational Actions**: Perform actions on individual leads or in bulk, such as updating lead status, assigning leads, or triggering a CRM resync for failed attempts.
+
+#### The Lead Detail View
+
+Clicking on a lead opens the detailed view, which provides:
+-   **Contact Information**: The normalized name, email, and phone number.
+-   **Vehicle Interest**: If the lead was submitted from a Vehicle Detail Page (VDP), the specific vehicle of interest is linked here.
+-   **Tracking Data**: UTM parameters, GCLID, and the page the user was on when they submitted the form.
+-   **Operational Actions**: From this screen, you can update the lead's status, assign it to a specific team member, add internal notes, or manually trigger a CRM resync if a previous attempt failed.
 
 ## Lead Processing Workflow
 
