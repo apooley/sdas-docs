@@ -1,326 +1,72 @@
 ---
 title: SDAS Tracking Hub
-description: Server-side tracking hub plugin for SDAS with REST endpoint and WordPress filter hooks for page and post type classification.
+description: User guide for the SDAS Tracking Hub plugin, covering its admin interface, event configuration, and server-side tracking capabilities for analytics and advertising platforms.
 ---
 
-## What the SDAS Tracking Hub plugin does
-
-SDAS Tracking Hub centralizes tracking events sent from front-end plugins and forwards them into the SDAS system for analytics and reporting.
-
-The plugin:
-
-- Registers a server-side REST endpoint for tracking events.
-- Normalizes basic context such as page type and post type.
-- Exposes WordPress filters so you can customize how page and post types are classified before events leave WordPress.
-
-Use this page when you need to integrate back-end tracking, adjust classification logic, or debug event ingestion from the front end.
-
-<Callout kind="info">
-
-Tracking Hub assumes that front-end code sends events only when consent and privacy requirements are already met. Do not include raw personally identifiable information in payloads unless your deployment and data handling policies explicitly allow it.
-
-</Callout>
-
-## Plugin bootstrap and loading
+## Overview
 
-The bootstrap file `wp-content/plugins/sdas-tracking-hub/sdas-tracking-hub.php` registers the plugin with WordPress and loads the core implementation from `includes/Plugin.php`.
+SDAS Tracking Hub provides a centralized system for managing and dispatching tracking events from your WordPress site to various analytics and advertising platforms. It captures front-end events, processes them server-side, and forwards them to services like Google Analytics 4 (GA4), Google Ads, and Meta (Facebook) with robust queuing and retry mechanisms. This ensures reliable data delivery for accurate reporting and campaign optimization.
 
-At a high level the bootstrap:
+## Admin Navigation and Interface
 
-- Defines plugin constants (paths, version).
-- Autoloads or includes the main plugin class.
-- Instantiates the main plugin class during the WordPress plugin load sequence.
+All SDAS Tracking Hub functionalities are accessible through the centralized **SDAS** menu in the WordPress admin sidebar. Navigate to **SDAS -> Tracking Hub** to access the main configuration and monitoring interface.
 
-Once activated, the plugin:
+The Tracking Hub interface is organized into four distinct tabs, each serving a specific purpose:
 
-- Registers the REST route `POST /sdas/v1/track`.
-- Hooks its filter callbacks and any additional actions defined in `includes/Plugin.php`.
+-   **Overview**: Provides a high-level summary of the Tracking Hub's status, including any critical alerts or warnings regarding its operation. This is your first stop for quickly assessing the health of your tracking setup.
+-   **Settings**: Configure the core behavior of the Tracking Hub. This includes setting up API credentials for external platforms (Google Ads, Meta, GA4), defining log levels, and managing other global tracking options. Sensitive credentials are securely stored using SDAS Core's token storage.
+-   **Event Config**: This is where you define and manage the specific tracking events that the hub will process. You can configure how events are mapped to external platforms, set up conditions for when they fire, and ensure all necessary data fields are captured. The system provides validation to highlight events missing required fields or with incorrect configurations.
+-   **Logs**: Displays a detailed log of all tracking events processed by the hub, including their delivery status to external platforms. This tab is invaluable for debugging, verifying event delivery, and troubleshooting any issues that may arise.
 
-## Tracking REST API: POST /sdas/v1/track
+### Admin Notices and Troubleshooting
 
-The Tracking Hub exposes a single REST route implemented in `includes/API/TrackingEndpoint.php`:
+The Tracking Hub actively displays admin notices to inform you of important runtime prerequisites and potential issues. These notices can highlight scenarios such as:
 
-- **Method:** `POST`
-- **Route:** `/sdas/v1/track`
-- **Context:** WordPress REST API (namespace `sdas/v1`, route `track`)
-
-Use this endpoint from your front-end integration (for example, the Tracking Hub front-end plugin or custom JavaScript) to submit tracking events.
-
-### Request structure
-
-`TrackingEndpoint.php` expects a JSON body. Exact field names depend on how your front-end is implemented, but a typical payload includes:
-
-- An event name or type.
-- Context about the current page (page type, post type, URL).
-- Optional metadata specific to the event (for example, inventory identifiers).
+-   **Feature Flag Disabled**: The Tracking Hub's core functionality might be turned off.
+-   **WPForms Missing**: If lead tracking is enabled, but WPForms (or another integrated form plugin) is not active.
+-   **Action Scheduler Missing**: The background processing system required for event queuing and retries is not available.
+-   **REST Endpoint Unavailable**: The `/sdas/v1/track` endpoint, which receives front-end events, is not accessible.
+-   **No Events Configured / All Events Disabled**: No tracking events are set up or enabled, meaning no data will be sent.
+-   **Invalid Events**: Specific events are misconfigured, preventing their proper processing.
 
-The plugin uses WordPress context and filters to normalize page and post type values before forwarding the event downstream.
+Always review these notices to ensure your tracking setup is operating correctly.
 
-<Request tabs="cURL,JavaScript" default-tab="1" show-lines="true">
+## Server-Side Tracking Endpoint: `POST /wp-json/sdas/v1/track`
 
-```bash
-curl -X POST "https://www.example-dealer.com/wp-json/sdas/v1/track" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "event": "vehicle_view",
-    "page": {
-      "url": "https://www.example-dealer.com/inventory/2020-ford-f-150-xlt",
-      "pageType": "vehicle_detail",
-      "postType": "vehicle"
-    },
-    "properties": {
-      "vehicleId": "veh_4f9c72b1",
-      "stockNumber": "F150-XLT-8321",
-      "price": 47995
-    }
-  }'
-```
+The Tracking Hub exposes a dedicated REST API endpoint for receiving tracking events from your front-end. This server-side approach enhances data reliability and security compared to client-side-only tracking.
 
-```javascript
-fetch("/wp-json/sdas/v1/track", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    event: "vehicle_view",
-    page: {
-      url: window.location.href,
-      pageType: "vehicle_detail",
-      postType: "vehicle"
-    },
-    properties: {
-      vehicleId: "veh_4f9c72b1",
-      stockNumber: "F150-XLT-8321",
-      price: 47995
-    }
-  })
-})
-  .then((res) => {
-    if (!res.ok) {
-      throw new Error("Tracking request failed");
-    }
-    return res.json();
-  })
-  .then((data) => {
-    // data structure depends on TrackingEndpoint implementation
-    console.debug("Tracking response", data);
-  })
-  .catch((error) => {
-    console.error(error);
-  });
-```
+-   **Method**: `POST`
+-   **Route**: `/sdas/v1/track`
+-   **Purpose**: To receive JSON payloads containing tracking event data from your website's front-end or other services.
 
-</Request>
+Front-end implementations (e.g., custom JavaScript or the SDAS Tracking Hub front-end plugin) send event data to this endpoint. The hub then processes this data, normalizes it, and dispatches it to the configured external analytics and advertising platforms.
 
-<Callout kind="info">
+## External Integrations
 
-The route path in the WordPress REST API is `/wp-json/sdas/v1/track`. Use an absolute URL when sending events from non-WordPress clients or external services.
-
-</Callout>
-
-### Expected response
-
-`TrackingEndpoint.php` returns a standard WordPress REST response. The exact payload can differ by implementation, but you can typically expect:
+The SDAS Tracking Hub supports integration with several key external platforms:
 
-- An HTTP 2xx status code on success.
-- A JSON body that includes at least a success indicator or the stored event data.
-- WordPress-style error responses (`WP_Error`) on validation or server failures.
+-   **Google Analytics 4 (GA4)**: Sends event data to your GA4 property for comprehensive website analytics.
+-   **Google Ads**: Facilitates conversion tracking for your Google Ads campaigns, allowing for better ad performance measurement and optimization.
+-   **Meta (Facebook) Conversions API**: Enables server-side event sending to Meta, improving the accuracy of your Facebook and Instagram ad targeting and measurement, especially in privacy-centric environments.
 
-<Response tabs="200,4xx/5xx" default-tab="1" show-lines="true">
+Configuration for these integrations, including API keys and specific event mappings, is managed within the **Settings** and **Event Config** tabs of the Tracking Hub admin interface.
 
-```json
-{
-  "success": true,
-  "eventId": "trk_9a7f53c2",
-  "receivedAt": "2024-05-16T14:22:37Z"
-}
-```
-
-```json
-{
-  "code": "sdas_invalid_payload",
-  "message": "Missing required field: event",
-  "data": {
-    "status": 400
-  }
-}
-```
-
-</Response>
-
-## Filter: sdas_tracking_hub_page_type
-
-Use the `sdas_tracking_hub_page_type` filter to customize or override the page type classification for tracking events.
-
-This filter is defined in `includes/Plugin.php` and typically runs when the plugin prepares event context based on the current request.
-
-### Signature
-
-The filter usually receives:
-
-- The resolved page type string (for example, `vehicle_detail`, `search_results`, `home`).
-- The current `WP_Post` object or `null`.
-- Additional context (for example, the request or route), depending on the implementation in `includes/Plugin.php`.
-
-A common pattern looks like:
-
-```php
-/**
- * @param string $page_type  Resolved page type.
- * @param WP_Post|null $post Current post, if available.
- * @param array $context     Additional context for classification.
- */
-apply_filters( 'sdas_tracking_hub_page_type', $page_type, $post, $context );
-```
-
-### Usage examples
-
-Use the filter in your theme or a custom plugin to map internal templates or conditions to SDAS page types.
-
-<CodeGroup tabs="Basic override,Conditional mapping">
-
-```php
-<?php
-// Force a custom landing page template to report as "campaign_landing".
-add_filter(
-  'sdas_tracking_hub_page_type',
-  function ( $page_type, $post, $context ) {
-    if ( isset( $post->ID ) && get_page_template_slug( $post->ID ) === 'tpl-campaign-landing.php' ) {
-      return 'campaign_landing';
-    }
-
-    return $page_type;
-  },
-  10,
-  3
-);
-```
-
-```php
-<?php
-// Map multiple internal templates into a small set of SDAS page types.
-add_filter(
-  'sdas_tracking_hub_page_type',
-  function ( $page_type, $post, $context ) {
-
-    if ( is_post_type_archive( 'vehicle' ) || is_tax( 'vehicle_category' ) ) {
-      return 'inventory_search';
-    }
-
-    if ( is_singular( 'vehicle' ) ) {
-      return 'vehicle_detail';
-    }
-
-    // Preserve the default classification for everything else.
-    return $page_type;
-  },
-  10,
-  3
-);
-```
-
-</CodeGroup>
-
-<Callout kind="info">
-
-Return the original `$page_type` value if you do not want to change the classification. The filter must always return a string; returning other types can break downstream consumers of tracking data.
-
-</Callout>
-
-## Filter: sdas_tracking_hub_post_type
-
-Use the `sdas_tracking_hub_post_type` filter to override or normalize the WordPress post type that Tracking Hub associates with an event.
-
-This filter is defined in `includes/Plugin.php` and is applied when building the event context from the current query or post.
-
-### Signature
-
-A typical call pattern is:
-
-```php
-/**
- * @param string $post_type  Resolved WordPress post type (for example, "post", "page", "vehicle").
- * @param WP_Post|null $post Current post, if available.
- * @param array $context     Additional classification context.
- */
-apply_filters( 'sdas_tracking_hub_post_type', $post_type, $post, $context );
-```
-
-### Usage examples
-
-You can use this filter to:
-
-- Collapse multiple custom post types into a shared type for analytics.
-- Map legacy post types to new ones without changing the underlying content model.
-- Handle special routing cases where the queried object does not reflect the logical content type.
-
-<CodeGroup tabs="Normalize to page,Map legacy types">
-
-```php
-<?php
-// Treat several custom landing post types as generic "page" for analytics.
-add_filter(
-  'sdas_tracking_hub_post_type',
-  function ( $post_type, $post, $context ) {
-    $landing_types = array( 'landing_page', 'promo_page', 'offer_page' );
-
-    if ( in_array( $post_type, $landing_types, true ) ) {
-      return 'page';
-    }
-
-    return $post_type;
-  },
-  10,
-  3
-);
-```
-
-```php
-<?php
-// Map a legacy post type "inventory_vehicle" to the current "vehicle" type.
-add_filter(
-  'sdas_tracking_hub_post_type',
-  function ( $post_type, $post, $context ) {
-    if ( $post_type === 'inventory_vehicle' ) {
-      return 'vehicle';
-    }
-
-    return $post_type;
-  },
-  10,
-  3
-);
-```
-
-</CodeGroup>
-
-## Integration checklist
-
-Use this quick checklist when integrating with SDAS Tracking Hub:
-
-- Confirm the plugin is installed and activated so `sdas/v1/track` is registered.
-- From the front-end, send events to `/wp-json/sdas/v1/track` with a JSON body.
-- Use `sdas_tracking_hub_page_type` to align page classifications with your analytics model.
-- Use `sdas_tracking_hub_post_type` to normalize post types where needed.
-- Verify responses from the REST endpoint and watch for WordPress REST errors during development.
-
-## Related documentation
+## Related Documentation
 
 <Columns cols={2}>
 
 <Card
-  title="Tracking Hub (front end)"
-  href="/plugins/sdas-tracking-hub-front-end"
-  icon="monitor"
-  cta="View front-end integration"
-/>
-
-<Card
-  title="System overview"
+  title="SDAS System Overview"
   href="/architecture/sdas-system-overview"
   icon="layout-dashboard"
   cta="Understand SDAS architecture"
+/>
+
+<Card
+  title="SDAS Forms Extension"
+  href="/plugins/sdas-forms-extension"
+  icon="file-text"
+  cta="Inspect lead capture"
 />
 
 </Columns>

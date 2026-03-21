@@ -217,154 +217,90 @@ This runtime perspective is most relevant when you debug front-end behavior, AJA
 
   <Tab title="Admin" icon="settings">
 
-The admin perspective covers configuration, content management, and operational visibility within `wp-admin`.
+The admin perspective covers configuration, content management, and operational visibility within `wp-admin`. All SDAS-related menus are consolidated under a single top-level **SDAS** menu in the WordPress sidebar, managed by `sdas-core`. This centralizes access to various plugin settings and operational dashboards, preventing a cluttered navigation experience.
 
 - **SDAS Core**
-  - Provides **shared SDAS admin menus** and entry points
-  - Surfaces **health monitoring** and possibly usage or status dashboards
-  - Centralizes **token management** for integrations like OpenAI and external APIs
+  - Provides the main **SDAS admin menu** and its core submenus: `Dashboard`, `Health`, and `SDAS Settings`.
+  - Surfaces **health monitoring** and possibly usage or status dashboards.
+  - Centralizes **token management** for integrations like OpenAI and external APIs.
 - **sdas-inventory**
-  - Manages **vehicle inventory posts** via custom post type screens
-  - Stores **vehicle schema fields** and awards data
+  - Manages **vehicle inventory posts** via custom post type screens (`Vehicles`).
+  - Stores **vehicle schema fields** and awards data.
 - **sdas-forms-extension**
-  - Adds **WPForms enhancements** and configuration for lead processing
-  - Exposes **ADF builder** settings and lead audit trail views
+  - Adds **WPForms enhancements** and configuration for lead processing, accessible via `SDAS -> Forms`.
+  - Exposes **ADF builder** settings and lead audit trail views, and manages the `SDAS -> Leads` inbox.
 - **sdas-crm-connector**
-  - Provides **CRM credential and field mapping** configuration
-  - May show **queue health and circuit breaker** status
+  - Provides **CRM credential and field mapping** configuration under `SDAS -> CRM Settings`.
+  - May show **queue health and circuit breaker** status via `SDAS -> CRM Sync Logs` and `SDAS -> CRM Sync Status`.
 - **sdas-csv-importer**
-  - Offers **import configuration screens** to upload and map CSV files
-  - Shows **import progress and results** summaries
+  - Offers **import configuration screens** to upload and map CSV files under `SDAS -> Import Settings`.
+  - Shows **import progress and results** summaries via `SDAS -> Import Logs`.
 - **sdas-tracking-hub**
-  - Configures **tracking destinations**, event mappings, and attribution settings
+  - Configures **tracking destinations**, event mappings, and attribution settings under `SDAS -> Tracking Hub`.
 - **sdas-openai-pages**
-  - Manages **landing page CPT** entries and their generation settings
+  - Manages **AI-generated landing pages** via a dedicated CPT (`Landing Pages`) and a `Landing Pages -> Generate with AI` menu item.
 - **sdas-dealership-content**
-  - Administers **team members and job listings** via dedicated CPT screens
-- **sdas-custom-breakdance-elements**
-  - May add **settings pages** for default element behavior or queries
-- **sdas-nocodebackend-sync**
-  - Holds **NoCodeBackend API keys and sync settings**
+  - Manages **team members** and **job listings** via their respective custom post type screens.
 
-From the admin view, SDAS behaves like a suite of coordinated plugins grouped under common SDAS menus, with Core providing the shared navigation and utilities.
+This admin perspective is crucial for operators to configure, monitor, and manage the various SDAS functionalities.
 
   </Tab>
 
-  <Tab title="Background jobs" icon="clock">
+  <Tab title="Background" icon="server">
 
-Background processing covers any work deferred off the main request loop, such as imports, syncs, and retries.
+Background processing involves asynchronous tasks that run without direct user interaction, often managed by Action Scheduler.
 
 - **SDAS Core**
-  - Supplies **logging and error handling** for scheduled tasks and queue workers
-  - Integrates with **health monitoring** to reflect background job status
+  - Provides shared **logging and error handling** for background jobs.
+  - Offers **secure token storage** for API keys used in background syncs.
 - **sdas-csv-importer**
-  - Runs **background import jobs** to process CSV records in batches
-  - Offloads **image reprocessing** to avoid front-end slowdowns
+  - Executes **CSV import pipelines** in the background, including image reprocessing.
 - **sdas-crm-connector**
-  - Uses **queues** to send leads and updates to CRM endpoints
-  - Implements **circuit breaker logic** that runs as part of job processing
+  - Manages **CRM sync queues** for leads and vehicles, handling retries and circuit breakers.
 - **sdas-tracking-hub**
-  - Manages **queued tracking events** and retries on failure
-  - Periodically flushes data to analytics platforms
-- **sdas-nocodebackend-sync**
-  - Executes **queued syncs** to the NoCodeBackend API for leads and vehicle snapshots
-- **sdas-openai-pages** (where configured)
-  - May run jobs to **refresh or regenerate landing page content** using the OpenAI client
+  - Dispatches **server-side tracking events** to external analytics platforms asynchronously.
+- **sdas-forms-extension**
+  - Processes **lead data** and fires `sdas_lead_submitted` actions, which can trigger background CRM syncs.
 
-In this context, SDAS behaves as a set of cooperating workers that use Core for reliability and observability while individual feature plugins own their domain-specific queues and processing logic.
+Understanding background processes is key for troubleshooting data synchronization, imports, and external API integrations.
 
   </Tab>
 
 </Tabs>
 
-## When to enable each plugin
+## Dependency relationships
 
-You rarely need every SDAS feature plugin on every site. Enable plugins based on the dealership’s requirements:
+SDAS plugins follow a hub-and-spoke model: the Core MU-plugin is the hub, and each feature plugin is a spoke that may depend on other spokes for domain data.
 
-- Use **SDAS Core (MU-plugin)** on all SDAS sites.
-- Add **sdas-inventory** and **sdas-vehicle-filters** for sites with detailed vehicle inventory browsing.
-- Include **sdas-forms-extension**, **sdas-crm-connector**, and **sdas-nocodebackend-sync** where lead capture and downstream sync are required.
-- Install **sdas-csv-importer** for bulk inventory or data onboarding workflows.
-- Configure **sdas-tracking-hub** anywhere precise server-side analytics and attribution are important.
-- Use **sdas-openai-pages** for scalable landing page generation.
-- Add **sdas-dealership-content** and **sdas-custom-breakdance-elements** to enhance dealership pages and builder-based layouts.
+At a high level:
 
-## Next steps and plugin-specific docs
+- **Every SDAS feature plugin depends on SDAS Core** for:
+  - Logging and error handling
+  - Secure token storage
+  - OpenAI client access (where applicable)
+  - Shared admin menus and common UI patterns
+- **Domain dependencies**:
+  - `sdas-vehicle-filters` depends on `sdas-inventory` for the vehicle CPT and metadata
+  - `sdas-custom-breakdance-elements` typically consumes data from `sdas-inventory` and dealership-related CPTs
+  - `sdas-forms-extension` produces normalized lead data that `sdas-crm-connector` and `sdas-nocodebackend-sync` can send downstream
+  - `sdas-openai-pages` relies on SDAS Core OpenAI tooling but is otherwise self-contained
 
-Use the cards below to dive into plugin-specific configuration and flows as they become available.
+```mermaid
+graph LR
+  Core[SDAS Core MU-plugin] --> Inv[sdas-inventory]
+  Core --> Forms[sdas-forms-extension]
+  Core --> CRM[sdas-crm-connector]
+  Core --> CSV[sdas-csv-importer]
+  Core --> Track[sdas-tracking-hub]
+  Core --> AIPages[sdas-openai-pages]
+  Core --> Breakdance[sdas-custom-breakdance-elements]
+  Core --> Dealership[sdas-dealership-content]
+  Core --> NCB[sdas-nocodebackend-sync]
 
-<Columns cols={3}>
+  Inv --> Filters[sdas-vehicle-filters]
+  Forms --> CRM
+  Forms --> NCB
+  Inv --> Breakdance
+```
 
-  <Card
-    title="SDAS Core"
-    href="#sdas-core-mu-plugin"
-    icon="shield"
-    cta="View core services"
-    horizontal="true"
-  >
-
-  Learn how the Core MU-plugin handles logging, security, OpenAI access, and shared admin menus for all SDAS components.
-
-  </Card>
-
-  <Card
-    title="Inventory stack"
-    href="#inventory-and-vehicle-discovery"
-    icon="database"
-    cta="Understand inventory data"
-    horizontal="true"
-  >
-
-  See how `sdas-inventory` and `sdas-vehicle-filters` define vehicle schema, templates, and AJAX filters for browsing.
-
-  </Card>
-
-  <Card
-    title="Leads and CRM sync"
-    href="#forms-leads-and-crm"
-    icon="users"
-    cta="Follow lead flows"
-    horizontal="true"
-  >
-
-  Trace how `sdas-forms-extension`, `sdas-crm-connector`, and `sdas-nocodebackend-sync` capture and sync leads.
-
-  </Card>
-
-  <Card
-    title="Imports and background jobs"
-    href="#data-ingestion-and-background-processing"
-    icon="terminal"
-    cta="Inspect job flows"
-    horizontal="true"
-  >
-
-  Explore CSV import, image reprocessing, and how background queues rely on SDAS Core for observability.
-
-  </Card>
-
-  <Card
-    title="Tracking and analytics"
-    href="#tracking-and-analytics"
-    icon="bar-chart"
-    cta="Review tracking design"
-    horizontal="true"
-  >
-
-  Review how `sdas-tracking-hub` centralizes event tracking to GA4, Google Ads, and Meta using queues and retries.
-
-  </Card>
-
-  <Card
-    title="Content and UI"
-    href="#content-and-presentation"
-    icon="code"
-    cta="Design the front end"
-    horizontal="true"
-  >
-
-  Learn how OpenAI-generated pages, dealership content, and Breakdance elements work together on the front end.
-
-  </Card>
-
-</Columns>
+This structure keeps infrastructure concerns centralized in SDAS Core and domain-specific logic localized in feature plugins.
