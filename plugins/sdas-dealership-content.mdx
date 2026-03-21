@@ -1,0 +1,89 @@
+---
+title: SDAS Dealership Content
+description: User guide for the SDAS Dealership Content plugin, covering Team Members management and Job Postings with automated Schema.org integration.
+---
+
+## Overview
+
+The SDAS Dealership Content plugin is a consolidated tool for managing non-inventory dealership content. It provides dedicated systems for showcasing your team and managing career opportunities, ensuring that your dealership's human element is well-represented and SEO-optimized.
+
+## Team Members
+
+The Team Members system allows you to create a professional directory of your staff, organized by department.
+
+### Managing Staff
+
+Team members are managed under the **Team Members** menu in the WordPress admin. Each team member profile includes:
+
+-   **Name and Bio**: Use the standard title and editor fields for the member's name and a detailed biography.
+-   **Role**: A dedicated **Role** meta box allows you to specify the member's exact job title (e.g., "Sales Manager", "Service Technician").
+-   **Photo**: Set a **Team Member Photo** using the Featured Image field. This photo is used in the directory grid.
+-   **Departments**: Organize your team using the **Departments** taxonomy (e.g., Sales, Service, Finance, Management).
+
+### Displaying the Team
+
+You can display your team directory on any page using the `[sdas_team_members]` shortcode.
+
+#### Shortcode Attributes
+
+The shortcode is highly configurable to match your page layout:
+
+| Attribute | Default | Description |
+| :--- | :--- | :--- |
+| `department` | (empty) | Filter by department slug (e.g., `department="sales"`). |
+| `posts_per_page` | `20` | Number of members to show. |
+| `columns` | `3` | Number of columns in the grid layout. |
+| `orderby` | `title` | Sort by `title`, `menu_order`, `date`, or `rand`. |
+| `order` | `ASC` | Sort order (`ASC` or `DESC`). |
+| `show_role` | `true` | Whether to display the member's job title. |
+| `show_excerpt` | `true` | Whether to show the short excerpt/tagline. |
+| `show_bio` | `false` | Whether to show the full biography text. |
+
+<Callout kind="info">
+**Note on Privacy:** Individual team member pages are disabled by default to protect staff privacy. Members are intended to be viewed as part of the directory grid rather than on standalone pages.
+</Callout>
+
+## Job Postings
+
+The Job Postings system provides a structured way to list career opportunities while automatically generating the **JobPosting JSON-LD schema** required for visibility on Google For Jobs.
+
+### Creating a Job Listing
+
+Job listings are managed under the **Job Listings** menu. In addition to the job title and description, each listing includes a comprehensive **Job Schema** meta box:
+
+-   **Employment Details**: Specify the **Employment Type** (Full-time, Part-time, Contract, etc.) and the **Date Posted**.
+-   **Location**: Define if the role is **Fully Remote** or linked to a specific city and region.
+-   **Compensation**: Enter the **Salary Value**, **Currency**, and **Salary Unit** (per hour, per year, etc.).
+-   **Validity**: Set a **Valid Through** date to indicate when the job posting expires.
+-   **Application**: Provide an optional **Apply URL** for external application tracking systems.
+
+### Schema Status and SEO
+
+A **Schema Status** box in the sidebar provides real-time feedback on your listing's SEO readiness:
+
+-   **Eligible**: The listing has all required fields and will be indexed by Google For Jobs once published.
+-   **Warnings/Missing Fields**: If required schema fields (like Location or Salary) are missing, the status box will list exactly what needs to be fixed.
+
+### Job Archives
+
+Unlike Team Members, Job Postings have public individual pages and a central archive located at `/jobs/`. This allows candidates to view full job details and share specific listings.
+
+## Related Documentation
+
+<Columns cols={2}>
+
+<Card
+  title="SDAS System Overview"
+  href="/architecture/sdas-system-overview"
+  icon="layout-dashboard"
+  cta="Understand the architecture"
+/>
+
+<Card
+  title="SDAS Core"
+  href="/plugins/sdas-core"
+  icon="settings"
+  cta="View core settings"
+/>
+
+</Columns>
