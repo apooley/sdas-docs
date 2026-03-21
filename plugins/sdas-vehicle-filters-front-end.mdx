@@ -42,17 +42,19 @@ You build your inventory search page with two shortcodes:
 
 | Attribute | Default | Description |
 | :--- | :--- | :--- |
-| `layout` | `horizontal` | Layout style: `horizontal` or `vertical`. |
+| `filter_layout` | `classic` | Layout style for the filter panel. Options: `classic`, `topbar_chips`, `stacked_compact`, `sidebar_desktop_modal_mobile`. The legacy `layout` attribute (`horizontal` or `vertical`) is now an alias for `classic`. |
 | `filter_types` | `make,model,year_range,price_range,body_type,condition,transmission,seats` | Comma-separated list of filters to display. |
-| `filter_order` | (empty) | Comma-separated list to override the default display order of filters. |
+| `filter_order` | (empty) | Comma-separated list to explicitly override the default display order of filters. If not provided, filters are ordered by internal priority: `make`, `price_range`, `body_type`, `condition`, `model`, `year_range`, `mileage_range`, `transmission`, `fuel_type`, `seats`, `status`, `location`, `colour`, `style`, `drivetrain`, `keyword`. |
 | `show_counts` | `yes` | Whether to show the number of matching vehicles next to each filter option. |
 | `show_reset` | `yes` | Whether to display the "Clear Filters" button. |
-| `target_selector` | `auto` | CSS selector for the results container. `auto` will attempt to detect the vehicle loop automatically. |
-| `auto_detect` | `yes` | Enable automatic detection of vehicle loops for page builders like Breakdance or Beaver Builder. |
+| `show_quick_presets` | `yes` | Whether to display quick preset buttons for common filter combinations. |
+| `show_vehicle_search` | `no` | Whether to display an inline vehicle search input field within the filter panel. |
+| `target_selector` | `.sdas-vf-results-container` | CSS selector for the results container that the filters will update. `auto` will attempt to detect the vehicle loop automatically. |
+| `auto_detect` | `yes` | Enable automatic detection of vehicle loops for page builders like Breakdance or Beaver Builder. If `target_selector` is explicitly set, `auto_detect` will be ignored. |
 
 Example:
 ```text
-[sdas_filters layout="vertical" filter_types="make,model,price_range" show_counts="no"]
+[sdas_filters filter_layout="sidebar_desktop_modal_mobile" filter_types="make,model,price_range" show_counts="no" show_quick_presets="yes"]
 ```
 
 ### `[sdas_filter_results]` — the results grid
@@ -103,7 +105,7 @@ Create a new page (e.g., "Search Inventory").
 </Step>
 
 <Step title="Add the shortcodes" icon="settings">
-Add `[sdas_filters]` and `[sdas_filter_results]` to the page. For a sidebar layout, use a two-column block and place the filters in the narrow column with `layout="vertical"`.
+Add `[sdas_filters]` and `[sdas_filter_results]` to the page. For a sidebar layout, use a two-column block and place the filters in the narrow column with `filter_layout="sidebar_desktop_modal_mobile"`.
 </Step>
 
 <Step title="Test and Verify" icon="play-circle">
