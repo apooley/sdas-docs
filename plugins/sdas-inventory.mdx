@@ -1,296 +1,100 @@
 ---
-title: sdas-inventory plugin
-description: Developer reference for the sdas-inventory WordPress plugin, covering the vehicle post type, schema, shortcodes/templates, awards scraping, and description generation.
+title: SDAS Inventory
+description: User guide for the SDAS Inventory plugin, covering vehicle management, the AI description generator, and inventory settings.
 ---
 
 ## Overview
 
-sdas-inventory manages the core vehicle inventory in WordPress and exposes reusable building blocks for search, display, and enrichment of vehicle data.
+SDAS Inventory is the core plugin responsible for managing vehicle data within the SDAS ecosystem. It defines the vehicle custom post type, provides the schema for all vehicle attributes, and powers the frontend display of your inventory. Crucially, it also includes a powerful AI-driven description generator that automatically creates compelling, SEO-friendly vehicle descriptions based on structured data and awards.
 
-The plugin defines and owns the vehicle custom post type, provides schema and description-generation services, and ships frontend templates for common inventory experiences such as grids, search, and comparison.
+## Vehicle Management
 
-<Callout kind="info">
+The plugin provides a comprehensive interface for managing your vehicle inventory directly within the WordPress admin.
 
-sdas-inventory depends on SDAS Core for shared constants (such as `SDAS_VEHICLE_POST_TYPE`) and common services. Load SDAS Core before activating or using sdas-inventory.
+### Vehicle Edit Screen
 
-</Callout>
+When adding or editing a vehicle (`Vehicles -> Add New` or editing an existing one), you'll find a structured interface that combines standard WordPress content areas with specific SDAS meta boxes:
 
-## Capabilities at a glance
+-   **Identity & Basic Info**: Fields for VIN, Stock Number, Make, Model, Year, Trim, and Body Style.
+-   **Pricing**: Manage MSRP, Internet Price, Book Value, and Invoice pricing.
+-   **Mechanical**: Specify Engine Cylinders, Displacement, Drivetrain, Transmission, and Fuel Economy (City/Highway MPG).
+-   **Features & Options**: A dedicated area to select vehicle features and options, which are crucial for both frontend filtering and AI description generation.
+-   **Media**: Manage the vehicle's image gallery and featured image.
+-   **Taxonomies**: Assign the vehicle to specific categories like Condition (e.g., Super Certified, MVI Only), Status, Location, and Colour.
 
-Use sdas-inventory when you need:
+### Bulk Actions
 
-- A canonical **vehicle custom post type** (CPT) and schema.
-- Frontend **templates/shortcodes** for:
-  - Vehicle grid and search
-  - Gallery and slider views
-  - Vehicle comparison
-  - Payment calculator
-  - Quick view overlays
-  - Similar vehicles and recently viewed vehicles
-  - Save vehicle and related user interactions
-- **Awards enrichment** using external sources (AJAC, IIHS, NHTSA) scheduled via Action Scheduler.
-- A **vehicle description generator** that produces human-readable copy from structured data.
+To streamline inventory management, the plugin adds custom bulk actions to the Vehicles list table (`Vehicles -> All Vehicles`):
 
-## Plugin surface area
+-   **Generate AI Descriptions**: Select multiple vehicles and trigger the AI description generation process in the background.
+-   **Update Status**: Quickly change the status (e.g., Available, Sold, Pending) of multiple vehicles at once.
+-   **Regenerate Images**: Trigger a regeneration of image thumbnails for selected vehicles.
+-   **Clear Cache**: Manually clear the cache for specific vehicles to ensure frontend updates are immediately visible.
 
-Use the tabs below to understand the plugin from three perspectives: what it does on the frontend, how it models data, and what background operations it runs.
+## AI Vehicle Description Generator
 
-<Tabs>
+One of the standout features of SDAS Inventory is its ability to automatically generate high-quality vehicle descriptions using OpenAI. This feature saves significant time and ensures consistency across your inventory listings.
 
-<Tab title="Features" icon="zap">
+### How It Works
 
-### Frontend features
+The generator uses a sophisticated prompt that combines:
 
-Frontend features are exposed via shortcodes and templates that you can embed in posts, pages, or theme templates.
+1.  **Vehicle Data**: It pulls all available structured data for the vehicle, including Make, Model, Year, Trim, Mileage, Features, and Options.
+2.  **Awards Data**: If the SDAS Awards module is active, it injects verified safety ratings (NHTSA, IIHS) and awards (AJAC) into the prompt, ensuring the AI only mentions factual, verified accolades.
+3.  **Condition Context**: The prompt adapts based on the vehicle's condition taxonomy (e.g., "Super Certified" vs. "MVI Only"), allowing for tailored messaging.
+4.  **Custom Instructions**: It incorporates any custom system prompts or equipment notes you've configured in the settings.
 
-<Callout kind="info">
+### Generating Descriptions
 
-The plugin provides shortcodes and templates for all features listed here. Refer to the source map for exact implementations and naming. Do not assume specific shortcode names without verifying in the code.
+You can generate descriptions in several ways:
 
-</Callout>
+-   **Manually per Vehicle**: On the vehicle edit screen, click the "Generate AI Description" button. The plugin will fetch the data, call the OpenAI API, and inject the resulting text directly into the WordPress editor.
+-   **Bulk Generation**: From the Vehicles list table, select multiple vehicles, choose "Generate AI Descriptions" from the Bulk Actions dropdown, and click Apply. This queues the generation process to run in the background via Action Scheduler.
+-   **Automatically on Save**: You can configure the plugin to automatically generate a description whenever a vehicle is saved (if it doesn't already have one).
+-   **During Import**: The system can be set to automatically generate descriptions for newly imported vehicles.
 
-#### Inventory grid and search
+### Configuration and Settings
 
-Use the inventory grid and search templates to list vehicles with filters and sorting.
+The AI description generator is highly configurable via **SDAS -> Inventory Settings -> AI Descriptions**:
 
-Typical use cases:
+-   **Auto-Generate**: Toggle whether descriptions should be automatically generated on save.
+-   **Word Count Range**: Set the minimum and maximum desired word count for the generated text.
+-   **System Prompts**: Define custom system prompts to guide the AI's tone and style. You can set a default prompt and a specific prompt for "MVI Only" vehicles.
+-   **Equipment Notes**: Add specific notes or disclaimers that should be appended to the generated descriptions (e.g., "See dealer for full equipment details").
+-   **Generate Missing**: A utility button to quickly queue description generation for all vehicles that currently lack an AI-generated description.
 
-- Primary **inventory listing page** (grid or list layout).
-- **Search results** page combining query, filters, and pagination.
-- Embedded **inventory sections** on marketing pages.
+<Callout kind="warning">
 
-The templates generally:
-
-- Query the vehicle CPT defined by SDAS Core and sdas-inventory.
-- Apply common filters such as make, model, year, price, body style, and mileage.
-- Render configurable card layouts and metadata badges.
-
-#### Gallery and slider
-
-Gallery and slider templates render media-focused views of one or more vehicles:
-
-- **Single-vehicle gallery** showing images and possibly videos of a specific vehicle.
-- **Slider / carousel** highlighting featured or promoted vehicles.
-
-These templates are typically used on:
-
-- Vehicle detail pages.
-- Homepages and landing pages showcasing featured inventory.
-
-#### Comparison
-
-Comparison templates allow users to evaluate multiple vehicles side by side.
-
-Core behavior:
-
-- Accept a selection of vehicle IDs.
-- Render a **column-per-vehicle** view with shared attributes (price, powertrain, dimensions, features) aligned in rows.
-- Integrate with save or selection mechanisms exposed by the plugin.
-
-#### Payment calculator
-
-The payment calculator supports basic financing estimates for a given vehicle:
-
-- Uses vehicle price and optional fees or taxes as inputs.
-- Lets users adjust term length, interest rate, and down payment.
-- Outputs estimated monthly or bi-weekly payments.
-
-You can embed the calculator on:
-
-- Vehicle detail pages next to pricing.
-- Finance or credit application pages.
-
-#### Quick view
-
-Quick view templates provide an overlay or modal view of key vehicle details without a full page load.
-
-Typical use:
-
-- Attach quick view triggers to vehicle cards in grids or sliders.
-- Render a lightweight summary: headline, price, key specs, and gallery preview.
-
-Quick view templates generally rely on the same vehicle CPT and schema data as the full detail page, but with a reduced field set.
-
-#### Similar and recently viewed vehicles
-
-The plugin exposes templates for:
-
-- **Similar vehicles**: suggest alternative vehicles based on shared attributes such as model, price band, or body style.
-- **Recently viewed vehicles**: track and show vehicles a visitor has interacted with recently.
-
-You can integrate these templates:
-
-- At the bottom of vehicle detail pages.
-- In sidebars or footers for cross-selling.
-
-#### Save vehicle and stats/awards
-
-Additional templates and hooks support:
-
-- **Save vehicle**: allow authenticated or cookie-based users to mark vehicles as favorites for later review.
-- **Stats**: surface aggregated information about a vehicle (for example, fuel economy, safety ratings) fed by schema and awards data.
-- **Awards**: display badges and labels from AJAC, IIHS, NHTSA enrichment workflows.
-
-</Tab>
-
-<Tab title="Data model" icon="database">
-
-### Vehicle custom post type
-
-sdas-inventory acts as the core manager for the vehicle CPT that SDAS Core defines.
-
-<Callout kind="info">
-
-The actual CPT registration and the `SDAS_VEHICLE_POST_TYPE` constant live in SDAS Core. sdas-inventory builds schema, templates, and enrichment around that CPT.
+**Prerequisites:** The AI description generator requires the SDAS Core plugin to be active and a valid OpenAI API key to be configured within the SDAS Core settings.
 
 </Callout>
 
-Key points:
+## Inventory Settings and Caching
 
-- Vehicles are stored as **posts** under the shared vehicle CPT.
-- The plugin expects structured metadata for vehicle attributes such as year, make, model, trim, engine, drivetrain, mileage, and pricing.
-- Frontend templates and generators read from this structured data rather than free-form content.
+The **SDAS -> Inventory Settings** page also provides controls for managing how inventory data is cached and exported:
 
-Because the CPT is shared across the SDAS ecosystem, other plugins can integrate with the same vehicle records without duplicating data.
+-   **Export Caching**: Enable or disable caching for the REST API export endpoints (`/wp-json/sdas/v1/vehicles/export`).
+-   **Refresh Frequency**: Configure how often the export cache should be automatically refreshed (e.g., 1-24 times per day).
+-   **Manual Cache Clear**: A button to manually purge the export cache, useful after significant inventory updates.
 
-### Vehicle schema
+The plugin employs a robust caching strategy, automatically invalidating specific vehicle caches upon save or delete actions, and clearing broader caches after bulk imports are completed.
 
-The plugin includes a dedicated schema helper:
+## Related Documentation
 
-- `class-sdas-vehicle-schema.php`
+<Columns cols={2}>
 
-This class encapsulates:
+<Card
+  title="SDAS System Overview"
+  href="/architecture/sdas-system-overview"
+  icon="layout-dashboard"
+  cta="Understand SDAS architecture"
+/>
 
-- A **normalized schema** for vehicle attributes (for example, powertrain, dimensions, options).
-- Accessors for reading and writing schema fields on the vehicle CPT.
-- Potential support for structured markup (for example, JSON-LD) mapped from vehicle data.
+<Card
+  title="SDAS Core"
+  href="/plugins/sdas-core"
+  icon="settings"
+  cta="View core settings"
+/>
 
-Use this class when you:
-
-- Create or update vehicles programmatically.
-- Need a consistent way to read schema fields in custom templates.
-- Integrate third-party systems with the SDAS vehicle data model.
-
-### Vehicle description generator
-
-Content generation is handled by:
-
-- `class-vehicle-description-generator.php`
-
-This class builds human-readable descriptions from the structured vehicle schema:
-
-- Uses key attributes (year, make, model, trim) as the base.
-- May incorporate highlights such as mileage, options, or awards.
-- Outputs a description suitable for the post content area or dedicated excerpt fields.
-
-Typical usage patterns:
-
-- Generate descriptions automatically when creating or importing vehicles.
-- Regenerate descriptions when important schema fields change.
-- Provide a base description that editors can refine manually.
-
-</Tab>
-
-<Tab title="Ops" icon="settings">
-
-### Awards scraping and enrichment
-
-sdas-inventory enriches vehicles with award and safety information from:
-
-- **AJAC**
-- **IIHS**
-- **NHTSA**
-
-Awards scraping typically:
-
-- Pulls data from upstream sources on a schedule.
-- Maps external identifiers (for example, make, model, trim, year) to your vehicle records.
-- Saves awards or ratings into vehicle meta or schema fields for later display in templates.
-
-### Action Scheduler integration
-
-The plugin uses **Action Scheduler** to orchestrate awards workflows.
-
-<Callout kind="info">
-
-Ensure Action Scheduler is installed and working in your environment. Awards scraping and enrichment rely on queued actions rather than running inline on page loads.
-
-</Callout>
-
-Action Scheduler is used to:
-
-- Queue **scrape jobs** for external awards sources.
-- Schedule **update tasks** that refresh awards across your inventory.
-- Handle **retry logic** for failed or time-limited requests.
-
-Operational considerations:
-
-- Monitor the Action Scheduler queue for long-running or failed awards jobs.
-- Run WP-Cron or a real cron trigger to process scheduled actions consistently.
-- Evaluate run frequency for awards updates so you balance freshness with external rate limits.
-
-### Operational footprint
-
-From an operations perspective, sdas-inventory:
-
-- Adds scheduled tasks and background jobs for awards scraping and updates.
-- Introduces additional database reads/writes for vehicle schema, awards, and description generation.
-- Relies on SDAS Core for stable CPT definitions and potentially shared caching or API clients.
-
-When deploying to production:
-
-- Validate that background processing is functioning (no growing backlog of pending awards actions).
-- Confirm that inventory pages and vehicle detail pages load within acceptable performance targets after enabling inventory features.
-
-</Tab>
-
-</Tabs>
-
-## Source map
-
-Use this source map to locate key pieces of functionality when you need to customize behavior or debug issues.
-
-<CodeGroup tabs="Plugin root,Schema,Description generator">
-
-```text
-wp-content/plugins/sdas-inventory/sdas-inventory.php
-```
-
-```text
-wp-content/plugins/sdas-inventory/includes/class-sdas-vehicle-schema.php
-```
-
-```text
-wp-content/plugins/sdas-inventory/includes/class-vehicle-description-generator.php
-```
-
-</CodeGroup>
-
-Additional locations you are likely to touch:
-
-- **Shortcodes and templates**
-
-  - `wp-content/plugins/sdas-inventory/` (shortcode handlers and loader logic)
-  - `wp-content/plugins/sdas-inventory/templates/` (grid, search, gallery, slider, comparison, payment calculator, quick view, similar/recently viewed, save vehicle, stats, awards)
-
-- **Awards and scheduling**
-
-  - `wp-content/plugins/sdas-inventory/includes/` (awards scraping, Action Scheduler hooks, and task registration)
-
-- **Integration with SDAS Core**
-
-  - References to `SDAS_VEHICLE_POST_TYPE` and other SDAS Core services throughout the plugin.
-
-<Callout kind="info">
-
-When customizing behavior, prefer extending hooks and filters around the vehicle CPT, schema, and templates rather than modifying core plugin files directly. Keep a record of any changes that diverge from the upstream plugin for easier upgrades.
-
-</Callout>
-
-## Next steps
-
-Once you understand sdas-inventory, you can:
-
-- Wire its templates/shortcodes into your theme for inventory listing, detail, and comparison experiences.
-- Integrate the vehicle schema and description generator into your import or data-sync workflows.
-- Configure Action Scheduler and monitoring around awards scraping to keep awards data fresh.
+</Columns>
