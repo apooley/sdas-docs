@@ -11,7 +11,7 @@ Use this page when you need to understand which cross-cutting concerns SDAS Core
 
 <Callout kind="info">
 
-WordPress loads MU-plugins on every request, before regular plugins. SDAS Core uses a small loader file at `wp-content/mu-plugins/sdas-core-loader.php` that checks `ABSPATH`, then attempts to require `wp-content/mu-plugins/sdas-core/sdas-core.php`. If the SDAS Core directory is missing, the loader registers an `admin_notices` callback that shows an error in the dashboard indicating that `wp-content/mu-plugins/sdas-core/` could not be found.
+WordPress loads MU-plugins on every request, before regular plugins. SDAS Core uses a small loader file at `wp-content/mu-plugins/sdas-core-loader.php` that checks `ABSPATH`, then attempts to require `wp-content/mu-plugins/sdas-core/sdas-core.php`.
 
 </Callout>
 
@@ -27,9 +27,7 @@ On each request:
 1. `sdas-core-loader.php` verifies that WordPress is bootstrapped by checking the `ABSPATH` constant.
 2. The loader computes the path to `wp-content/mu-plugins/sdas-core/sdas-core.php`.
 3. If that file exists, the loader requires it, bootstrapping all SDAS Core services.
-4. If the file or directory is missing, the loader registers an `admin_notices` callback that displays an error banner in the WordPress admin, explaining that the SDAS Core directory was not found at `wp-content/mu-plugins/sdas-core/`.
-
-This pattern ensures SDAS Core is always available to SDAS plugins, and that misconfiguration is surfaced clearly to administrators instead of failing silently.
+4. If the file or directory is missing, the loader registers an `admin_notices` callback that displays an error banner in the WordPress admin.
 
 ## Core capabilities by area
 
@@ -39,618 +37,122 @@ Use the tabs below to understand SDAS Core capabilities grouped by concern: shar
 
 <Tab title="Services" icon="code">
 
-SDAS Core exposes a set of runtime services that SDAS feature plugins should use for cross-cutting concerns instead of rolling their own implementations.
+SDAS Core exposes a set of runtime services that SDAS feature plugins should use for cross-cutting concerns.
 
 ### Error handling and logging
 
-Core owns the global error handling stack, including:
+Core owns the global error handling stack, including a centralized error handler, log manager, and shutdown handler for fatal errors.
 
-- A centralized error handler
-- A log manager abstraction
-- A shutdown handler for fatal errors
-
-Route all structured logging and exception reporting through the Core logger so errors are consistent and traceable across plugins.
-
-<CodeGroup tabs="PHP,WordPress hook">
+Route all structured logging through the `sdas_log()` function:
 
 ```php
 <?php
 // Example: logging from an SDAS feature plugin
-
-// Get the shared SDAS Core logger (pattern, name, or accessor may differ in actual code).
-$logger = sdas_core_get_logger('my-plugin');
-
-// Log contextual information with levels.
-$logger->info('Started processing daily sync', [
-    'site_id'  => get_current_blog_id(),
+sdas_log('info', 'Started processing daily sync', [
     'source'   => 'crm_import',
     'trace_id' => 'trc_c94d7cfa9e3f4ab0',
 ]);
 
 try {
-    sdas_import_from_crm();
-    $logger->notice('CRM import completed successfully');
+    // Feature logic...
 } catch (Throwable $e) {
-    // Centralized error reporting; shutdown handler can also pick up fatal issues.
-    $logger->error('CRM import failed', [
-        'exception' => $e,
-        'code'      => $e->getCode(),
+    sdas_log('error', 'Sync failed', [
+        'message' => $e->getMessage(),
+        'code'    => $e->getCode(),
     ]);
-
-    // Optionally rethrow or handle locally.
-    throw $e;
 }
 ```
-
-```php
-<?php
-// Example: hooking into Core's shutdown error handling
-
-add_action('sdas_core_register_error_handlers', function () {
-    // Hypothetical registration API; adapt to actual Core API.
-    sdas_core_register_error_channel('my-plugin', [
-        'min_level' => 'warning',
-        'handlers'  => [
-            'log_file'   => true,
-            'admin_bar'  => true,
-            'remote_air' => false,
-        ],
-    ]);
-});
-```
-
-</CodeGroup>
 
 ### OpenAI client
 
-SDAS Core provides a shared OpenAI API client so plugins do not manage API keys, HTTP clients, or error handling independently. The client integrates with Core logging and usage tracking to give consistent observability around AI calls.
-
-Typical usage from a feature plugin:
-
-<CodeGroup tabs="PHP,JSON response">
+SDAS Core provides a shared OpenAI API client via `SDAS_OpenAI_Client`. This ensures consistent API key management and error handling across the suite.
 
 ```php
 <?php
-// Example: using the shared OpenAI client from SDAS Core
-
-// Get the shared client; SDAS Core manages API keys and HTTP config.
-$client = sdas_core_get_openai_client();
-
-// Prepare a prompt and call a chat/completion model.
-$response = $client->createChatCompletion([
-    'model'    => 'gpt-4.1-mini',
+$client = new SDAS_OpenAI_Client();
+$response = $client->chat([
+    'model' => 'gpt-4.1-mini',
     'messages' => [
-        ['role' => 'system', 'content' => 'You are a summarization assistant.'],
-        ['role' => 'user',   'content' => 'Summarize the latest support ticket in three bullet points.'],
-    ],
-    'max_tokens'   => 200,
-    'temperature'  => 0.4,
-    'metadata'     => [
-        'plugin'   => 'my-plugin',
-        'feature'  => 'ticket-summary',
-        'site_id'  => get_current_blog_id(),
-    ],
+        ['role' => 'user', 'content' => 'Generate a vehicle description...']
+    ]
 ]);
-
-$content = $response['choices'][0]['message']['content'] ?? '';
-
-update_post_meta($ticket_id, '_sdas_ai_summary', $content);
 ```
-
-```json
-{
-  "id": "chatcmpl_a84bb3c6b5a748a5",
-  "model": "gpt-4.1-mini",
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "- Customer cannot log in after password reset\n- Error message appears on mobile only\n- Requests confirmation email resend and device check"
-      },
-      "finish_reason": "stop"
-    }
-  ],
-  "usage": {
-    "prompt_tokens": 82,
-    "completion_tokens": 53,
-    "total_tokens": 135
-  }
-}
-```
-
-</CodeGroup>
 
 ### Secure token storage
 
-Core manages secure storage for credentials, API tokens, and other secrets. Plugins should never store tokens directly in options or post meta; instead, use the secure token storage abstraction so secrets are encrypted and access-controlled consistently.
-
-<CodeGroup tabs="Store token,Read token">
-
-```php
-<?php
-// Store or update a token using SDAS Core secure storage.
-
-$token_id = sdas_core_tokens_store([
-    'scope'       => 'my-plugin:remote-service',
-    'label'       => 'Remote CRM API token',
-    'token'       => 'crm_sk_a9fd1f4b71e447f6ab29c74b8cf7b1f1',
-    'expires_at'  => '2026-06-01T12:00:00Z',
-    'site_id'     => get_current_blog_id(),
-    'created_by'  => get_current_user_id(),
-]);
-
-// Persist the reference, not the secret itself.
-update_option('my_plugin_crm_token_ref', $token_id);
-```
-
-```php
-<?php
-// Read a token later using its reference.
-
-$token_id = get_option('my_plugin_crm_token_ref');
-
-if ($token_id) {
-    $token_record = sdas_core_tokens_get($token_id);
-
-    if ($token_record && empty($token_record['revoked'])) {
-        $access_token = $token_record['token'];
-
-        $response = wp_remote_get(
-            'https://api.acme-crm.com/v1/accounts',
-            [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $access_token,
-                ],
-                'timeout' => 15,
-            ]
-        );
-
-        // Handle response...
-    }
-}
-```
-
-</CodeGroup>
+Core manages secure storage for credentials and API tokens via `SDAS_Secure_Token_Storage`. Plugins should use this for sensitive data like CRM API keys.
 
 ### Input validation
 
-SDAS Core includes an input validator for normalizing and validating request data. Use it for any user input you process in SDAS plugins, including form submissions, REST requests, or admin actions.
-
-Typical patterns:
-
-- Declare a validation schema per use case.
-- Ask Core to validate raw input against the schema.
-- Trust the normalized values and handle validation errors centrally.
-
-<CodeGroup tabs="PHP schema,Validation call">
-
-```php
-<?php
-// Define a validation schema for an admin action.
-
-$schema = [
-    'email' => [
-        'type'      => 'string',
-        'format'    => 'email',
-        'required'  => true,
-        'maxLength' => 190,
-    ],
-    'limit' => [
-        'type'     => 'integer',
-        'min'      => 1,
-        'max'      => 250,
-        'required' => false,
-        'default'  => 50,
-    ],
-    'tags' => [
-        'type'     => 'array',
-        'required' => false,
-        'items'    => [
-            'type'      => 'string',
-            'maxLength' => 64,
-        ],
-    ],
-];
-```
-
-```php
-<?php
-// Validate incoming data with SDAS Core.
-
-$result = sdas_core_validate_input($schema, $_POST);
-
-if ($result->is_valid()) {
-    $data = $result->get_values();
-
-    // Use normalized data confidently.
-    my_plugin_sync_user($data['email'], $data['limit'], $data['tags'] ?? []);
-} else {
-    $errors = $result->get_errors();
-
-    // Forward errors to a shared error renderer or return a structured response.
-    sdas_core_render_validation_errors($errors);
-}
-```
-
-</CodeGroup>
-
-### Security headers
-
-Core centralizes HTTP security headers (content security policy, HSTS, frame options, etc.) so SDAS plugins do not modify headers directly in conflicting ways. When you add new public or admin-facing endpoints, prefer registering them with Core so they inherit baseline security posture.
-
-Typical usage patterns:
-
-- Declare that a route or page should use the standard SDAS security profile.
-- Optionally request additional headers or relaxed policies for specific URLs (for example, AI playgrounds that need extra origins).
-
-```php
-<?php
-// Example: register an endpoint with the standard SDAS security profile.
-
-add_action('sdas_core_register_security_profile', function () {
-    sdas_core_security_register_endpoint([
-        'id'        => 'my-plugin-settings',
-        'pattern'   => '/wp-admin/admin.php?page=my-plugin-settings',
-        'profile'   => 'admin-default',
-        'csp_extra' => [
-            'script-src' => ["https://cdn.my-plugin-assets.com"],
-        ],
-    ]);
-});
-```
-
-### Health monitoring and usage tracking
-
-SDAS Core includes:
-
-- A health monitor to track internal checks (database connectivity, queue state, external API reachability)
-- A usage tracker to record feature-level usage across SDAS plugins
-
-Use these facilities to:
-
-- Register health checks relevant to your plugin
-- Emit structured usage events instead of writing your own tracking tables
-
-```php
-<?php
-// Register a custom health check.
-
-add_action('sdas_core_register_health_checks', function () {
-    sdas_core_health_register_check([
-        'id'       => 'my-plugin-remote-service',
-        'label'    => 'Remote service connectivity',
-        'callback' => function () {
-            $response = wp_remote_get('https://status.my-remote-service.com/ping', ['timeout' => 5]);
-
-            if (is_wp_error($response)) {
-                return [
-                    'status'  => 'critical',
-                    'message' => 'Ping failed: ' . $response->get_error_message(),
-                ];
-            }
-
-            $code = wp_remote_retrieve_response_code($response);
-
-            return [
-                'status'  => ($code === 200) ? 'ok' : 'warning',
-                'message' => 'HTTP ' . $code . ' from status endpoint',
-            ];
-        },
-    ]);
-});
-
-// Track feature usage.
-
-sdas_core_usage_track_event([
-    'plugin'         => 'my-plugin',
-    'event'          => 'ticket_summary_generated',
-    'site_id'        => get_current_blog_id(),
-    'user_id'        => get_current_user_id(),
-    'properties'     => [
-        'source'          => 'admin-list',
-        'tickets_batched' => 12,
-    ],
-    'occurred_at'    => gmdate('c'),
-]);
-```
+The `SDAS_Input_Validator` class provides a consistent way to normalize and validate request data across all SDAS plugins.
 
 </Tab>
 
-<Tab title="Admin" icon="settings">
+<Tab title="Admin UX" icon="layout">
 
-SDAS Core owns shared admin UX elements that all SDAS plugins should plug into for a consistent experience: global menus, a central dashboard, settings pages, quick actions, and index administration screens.
+SDAS Core provides the unified admin interface for the entire plugin suite.
 
-### Shared admin menus and navigation
+### Centralized Menu
 
-Instead of creating your own top-level `add_menu_page` entries for each plugin, attach your admin pages to the SDAS Core menu tree. This keeps the WordPress admin clean and groups SDAS features under a single entry.
+The `SDAS_AdminMenuManager` consolidates all SDAS-related settings and tools under a single top-level **SDAS** menu. Individual plugins register their submenus via the `sdas_register_admin_menu` action.
 
-Typical patterns:
+### Shared Settings
 
-- Register a submenu page under the SDAS dashboard
-- Add quick actions or contextual tools to a shared SDAS admin area
+The central **SDAS Settings** page (`sdas-settings`) includes tabs for:
+- **System**: Global performance and logging settings.
+- **Dealership**: Shared dealership identity data (Name, Address, Logo).
+- **Schema**: Centralized structured data management and reporting.
+- **Calculator**: Global finance calculator presets.
 
-```php
-<?php
-// Register a submenu page under the SDAS Core admin menu.
+### Quick Actions
 
-add_action('admin_menu', function () {
-    // The parent slug is provided by SDAS Core; adjust to the actual slug in your environment.
-    $parent_slug = 'sdas-dashboard';
-
-    add_submenu_page(
-        $parent_slug,
-        'My Plugin',
-        'My Plugin',
-        'manage_options',
-        'sdas-my-plugin',
-        'my_plugin_render_admin_page'
-    );
-});
-
-function my_plugin_render_admin_page()
-{
-    echo '<div class="wrap">';
-    echo '<h1>My Plugin</h1>';
-    echo '<p>Integrates tightly with SDAS Core services.</p>';
-    echo '</div>';
-}
-```
-
-### Settings integration
-
-Core provides shared settings infrastructure so SDAS plugin configuration:
-
-- Uses consistent patterns for capability checks and nonces
-- Supports export/import or environment-specific overrides where needed
-- Can surface Core-managed concepts (for example, token references, usage stats)
-
-When possible, define your plugin options via Core rather than raw `register_setting` calls.
-
-```php
-<?php
-// Define settings through SDAS Core.
-
-add_action('sdas_core_register_settings', function () {
-    sdas_core_settings_register_section([
-        'id'          => 'my-plugin',
-        'title'       => 'My Plugin',
-        'description' => 'Configure My Plugin integration.',
-        'fields'      => [
-            [
-                'id'          => 'remote_endpoint',
-                'label'       => 'Remote endpoint',
-                'type'        => 'text',
-                'description' => 'Base URL for the remote integration.',
-            ],
-            [
-                'id'          => 'token_ref',
-                'label'       => 'API token',
-                'type'        => 'token_reference',
-                'description' => 'Select a token stored in SDAS secure storage.',
-            ],
-        ],
-    ]);
-});
-```
-
-### Quick actions and tools
-
-Core may expose a "Quick actions" area where plugins can register frequently used admin tasks, such as:
-
-- Manually syncing data
-- Running backfills or repair jobs
-- Generating on-demand AI summaries
-
-Register these through Core instead of building custom pages for every action.
-
-```php
-<?php
-// Register a quick action button handled by your plugin.
-
-add_action('sdas_core_register_quick_actions', function () {
-    sdas_core_quick_actions_register([
-        'id'          => 'my-plugin-run-sync',
-        'label'       => 'Run full sync',
-        'description' => 'Trigger a full sync with the remote service.',
-        'callback'    => 'my_plugin_handle_full_sync',
-        'capability'  => 'manage_options',
-    ]);
-});
-
-function my_plugin_handle_full_sync()
-{
-    // Perform the sync and report status through Core's admin notices or logging.
-    sdas_core_get_logger('my-plugin')->info('Manual full sync requested from quick actions.');
-
-    my_plugin_run_full_sync();
-
-    sdas_core_admin_add_notice('My Plugin full sync started. Check logs for progress.');
-}
-```
-
-### Index administration screens
-
-SDAS Core includes "index admin" tooling for managing database indexes created by SDAS plugins. Use it to:
-
-- Register indexes that your plugin requires
-- Allow administrators to create, drop, or inspect indexes from a central UI
-- Keep index definitions versioned and discoverable
-
-```php
-<?php
-// Register a database index with SDAS Core index admin.
-
-add_action('sdas_core_register_indexes', function () {
-    sdas_core_index_register([
-        'id'           => 'my-plugin-events-created-at',
-        'table'        => $GLOBALS['wpdb']->prefix . 'my_plugin_events',
-        'columns'      => ['site_id', 'created_at'],
-        'unique'       => false,
-        'where'        => 'deleted_at IS NULL',
-        'description'  => 'Speeds up queries on recent active events per site.',
-        'managed_by'   => 'my-plugin',
-        'recommended'  => true,
-    ]);
-});
-```
+A floating **Quick Actions** menu is available across the WordPress admin, providing one-click access to common tasks like adding vehicles, running imports, or clearing cache.
 
 </Tab>
 
-<Tab title="Ops & reliability" icon="shield">
+<Tab title="Ops & Reliability" icon="activity">
 
-Operational tooling in SDAS Core helps you keep SDAS plugins reliable under load and during incidents. Use these capabilities to standardize how your plugin interacts with the database, health checks, and runtime environment.
+SDAS Core includes tools for monitoring and maintaining site health.
 
-### Database index tooling
+### Health Monitor
 
-Core provides index tooling beyond the admin UI:
+The `SDAS_Health_Monitor` runs daily checks on database connectivity, queue state, and external API reachability. Results are surfaced in the **SDAS -> Health** page.
 
-- A central registry of index definitions
-- Utilities to create, drop, and reconcile indexes in code
-- Potential migration helpers to evolve index definitions safely
+### Schema Manager
 
-When you rely on specific indexes for performance, register them with Core so:
+The `SDAS_Schema_Manager` coordinates structured data output across the site. It provides a **Schema Console** in the settings page that reports on schema ownership and status for all site surfaces (Front Page, Vehicles, Jobs, etc.).
 
-- Health checks can verify they exist
-- Admins can inspect and manage them
-- Migrations can be coordinated across environments
+### Database Indexes
 
-```php
-<?php
-// Ensure a required index exists during plugin activation.
-
-register_activation_hook(__FILE__, function () {
-    sdas_core_index_ensure('my-plugin-events-created-at');
-});
-```
-
-### Health monitor
-
-The health monitor aggregates checks from SDAS plugins and exposes them through shared interfaces (admin pages, CRON jobs, or external probes). Use it to report operational readiness signals.
-
-Examples of checks to register:
-
-- Third-party API connectivity
-- Queue or scheduler liveness
-- Size or age of pending jobs
-- Database schema expectations
-
-```php
-<?php
-// Example: register a queue backlog health check.
-
-add_action('sdas_core_register_health_checks', function () {
-    sdas_core_health_register_check([
-        'id'       => 'my-plugin-queue-backlog',
-        'label'    => 'My Plugin queue backlog',
-        'callback' => function () {
-            global $wpdb;
-
-            $table = $wpdb->prefix . 'my_plugin_queue';
-            $count = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE processed_at IS NULL");
-
-            if ($count > 5000) {
-                return [
-                    'status'  => 'warning',
-                    'message' => 'Queue backlog is high: ' . $count . ' jobs pending.',
-                ];
-            }
-
-            return [
-                'status'  => 'ok',
-                'message' => 'Queue backlog within normal range (' . $count . ' jobs).',
-            ];
-        },
-    ]);
-});
-```
-
-### Usage tracker
-
-The usage tracker is designed for low-cardinality, structured events, not arbitrary logging. Use it when you need to answer questions such as:
-
-- How often is a specific feature used?
-- How many AI calls does a given site generate per day?
-- Which SDAS plugins are active across a fleet?
-
-By emitting consistent events, you help Core build aggregate dashboards and enforce limits where needed.
-
-```php
-<?php
-// Track a feature usage event with minimal fields.
-
-sdas_core_usage_track_event([
-    'plugin'      => 'my-plugin',
-    'event'       => 'feature_toggled',
-    'site_id'     => get_current_blog_id(),
-    'user_id'     => get_current_user_id(),
-    'properties'  => [
-        'feature' => 'priority-routing',
-        'enabled' => true,
-    ],
-    'occurred_at' => gmdate('c'),
-]);
-```
-
-### Coordinating with error handling
-
-Error handling, logging, and operational health are closely related. When you catch and handle exceptions in your plugin:
-
-- Log through the Core logger
-- Optionally emit a usage or incident event
-- Consider exposing a health check if repeated failures indicate degraded operation
-
-```php
-<?php
-try {
-    my_plugin_run_scheduled_job();
-} catch (Throwable $e) {
-    $logger = sdas_core_get_logger('my-plugin');
-
-    $logger->error('Scheduled job failed', [
-        'job'       => 'nightly_cleanup',
-        'exception' => $e,
-    ]);
-
-    sdas_core_usage_track_event([
-        'plugin'      => 'my-plugin',
-        'event'       => 'scheduled_job_failed',
-        'site_id'     => get_current_blog_id(),
-        'properties'  => [
-            'job'   => 'nightly_cleanup',
-            'error' => $e->getMessage(),
-        ],
-        'occurred_at' => gmdate('c'),
-    ]);
-
-    // Decide whether to rethrow or swallow based on job semantics.
-}
-```
+The `SDAS_Database_Indexes` class manages custom database indexes for SDAS tables to ensure high-performance queries even with large inventories.
 
 </Tab>
 
 </Tabs>
 
-## When to depend on SDAS Core
+## Related documentation
 
-As a rule, use SDAS Core for any concern that is:
+<Columns cols={3}>
 
-- Shared across more than one SDAS plugin (logging, tokens, OpenAI, health, usage)
-- Security-sensitive (token storage, security headers, validation)
-- Operational (indexes, health checks, scheduled tasks, usage tracking)
-- User-facing at the SDAS level (admin menus, dashboard, quick actions, index admin)
+<Card
+  title="SDAS Core front end"
+  href="/mu-plugins/sdas-core-front-end"
+  icon="monitor"
+  cta="View visitor impact"
+/>
 
-Avoid duplicating these capabilities inside feature plugins. Instead, treat SDAS Core as the stable foundation your plugin targets.
+<Card
+  title="System overview"
+  href="/architecture/sdas-system-overview"
+  icon="layout-dashboard"
+  cta="Understand the big picture"
+/>
 
-## Summary and next steps
+<Card
+  title="Inventory (backend)"
+  href="/plugins/sdas-inventory"
+  icon="database"
+  cta="Explore inventory logic"
+/>
 
-SDAS Core ensures that all SDAS plugins share the same building blocks for errors, logging, AI, security, storage, and admin UX. The loader at `wp-content/mu-plugins/sdas-core-loader.php` guarantees that these services are available early in the WordPress bootstrap cycle and surfaces configuration issues via admin notices.
-
-When you extend or create SDAS plugins:
-
-- Route logging and error reporting through the Core logger and shutdown handler.
-- Use the shared OpenAI client and secure token storage instead of managing secrets per plugin.
-- Register validation schemas, indexes, health checks, and usage events with Core.
-- Attach your admin pages, quick actions, and index definitions to the shared SDAS admin experience.
-
-Aligning with these patterns keeps SDAS plugins consistent, maintainable, and observable across environments.
+</Columns>
