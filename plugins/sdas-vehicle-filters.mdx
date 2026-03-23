@@ -133,6 +133,7 @@ SDAS Vehicle Filters uses a robust caching system based on WordPress Transients 
 
 - **Query Results**: Cached for 15 minutes by default.
 - **Filter Ranges & Counts**: Cached for 1 hour by default.
+- **Model Options**: The dependent model list (based on selected makes) is cached using transients to prevent expensive taxonomy relationship queries on every request.
 - **Cache Invalidation**: The entire filter cache is automatically cleared whenever a vehicle post is created, updated, or deleted. This ensures that visitors always see accurate inventory data.
 
 Developers can manually clear the cache using the `sdas_vf_cleanup_cache` hourly cron job or by calling `Plugin::getInstance()->cache_manager->clearAll()`.

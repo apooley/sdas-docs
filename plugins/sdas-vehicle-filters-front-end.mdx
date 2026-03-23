@@ -50,7 +50,7 @@ When choosing your `filter_types`, put your most important filters (like Make, M
 
 | Attribute | Default | Description |
 | :--- | :--- | :--- |
-| `filter_layout` | `classic` | Layout style for the filter panel. Options: `classic`, `topbar_chips`, `stacked_compact`, `sidebar_desktop_modal_mobile`. The legacy `layout` attribute (`horizontal` or `vertical`) is now an alias for `classic`. |
+| `filter_layout` | `classic` | Layout style for the filter panel. Options: `classic`, `topbar_chips`, `stacked_compact`, `sidebar_desktop_modal_mobile`, `floating`. The legacy `layout` attribute (`horizontal` or `vertical`) is now an alias for `classic`. |
 | `filter_types` | `make,model,year_range,price_range,body_type,condition,transmission,seats` | Comma-separated list of filters to display. |
 | `filter_order` | (empty) | Comma-separated list to explicitly override the default display order of filters. If not provided, filters are ordered by internal priority: `make`, `price_range`, `body_type`, `condition`, `model`, `year_range`, `mileage_range`, `transmission`, `fuel_type`, `seats`, `status`, `location`, `colour`, `style`, `drivetrain`, `keyword`. |
 | `show_counts` | `yes` | Whether to show the number of matching vehicles next to each filter option. |
@@ -99,6 +99,9 @@ The plugin automatically manages the browser history. When a visitor applies a f
 
 ### Page Builder Compatibility
 SDAS Vehicle Filters is designed to work seamlessly with page builders like **Breakdance**, **Beaver Builder**, and **Elementor**. The `auto_detect="yes"` setting allows the filters to find and update vehicle loops rendered by these builders without manual CSS selector configuration.
+
+### Search Integration
+When the `[sdas_vehicle_search]` shortcode is placed inside or near a filter container, it automatically integrates with the active filter instance. Typing a keyword into the search box will trigger the main filter AJAX request, updating the primary grid instead of loading a separate results panel.
 
 ## Setup: create an inventory-with-filters page
 

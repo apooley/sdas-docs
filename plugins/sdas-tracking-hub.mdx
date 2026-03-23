@@ -70,6 +70,14 @@ The Tracking Hub exposes a dedicated REST API endpoint for receiving tracking ev
 
 Front-end implementations (like the SDAS Tracking Hub front-end plugin) send event data to this endpoint. The hub then processes this data, normalizes it, and dispatches it to the configured external platforms according to your Event Config rules.
 
+### Related Vehicle Tracking
+
+The Tracking Hub includes a powerful feature for tracking interactions with vehicles outside of the standard inventory grid or VDP (e.g., a "Related Vehicles" carousel or a "Recently Viewed" widget).
+
+It can automatically extract a stock number from a DOM element, resolve the full vehicle details (make, model, year, price) via a fallback REST endpoint (`/wp-json/sdas/v1/vehicle-by-stock`), and push a rich `relatedto_vehicle` event to the `dataLayer`.
+
+Developers can configure this via the `sdas_tracking_hub_related_vehicle_configs` PHP filter, specifying the CSS selector, the source of the stock number (text, attribute, or dataset), and the pages where the tracking should run.
+
 ## Related Documentation
 
 <Columns cols={2}>
