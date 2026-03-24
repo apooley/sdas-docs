@@ -74,9 +74,14 @@ Front-end implementations (like the SDAS Tracking Hub front-end plugin) send eve
 
 The Tracking Hub includes a powerful feature for tracking interactions with vehicles outside of the standard inventory grid or VDP (e.g., a "Related Vehicles" carousel or a "Recently Viewed" widget).
 
-It can automatically extract a stock number from a DOM element, resolve the full vehicle details (make, model, year, price) via a fallback REST endpoint (`/wp-json/sdas/v1/vehicle-by-stock`), and push a rich `relatedto_vehicle` event to the `dataLayer`.
+It can automatically extract a stock number from a DOM element, resolve the full vehicle details (make, model, year, price), and push a rich `relatedto_vehicle` event to the `dataLayer`.
 
-Developers can configure this via the `sdas_tracking_hub_related_vehicle_configs` PHP filter, specifying the CSS selector, the source of the stock number (text, attribute, or dataset), and the pages where the tracking should run.
+**The Resolution Chain**
+To ensure high performance and minimize server load, the Tracking Hub uses a two-step resolution chain to find the vehicle data:
+1.  **Cached JSON Lookup**: It first attempts to fetch the static inventory export file (`/wp-json/sdas/v1/vehicles/export`). Because this file is heavily cached by the server, it usually returns instantly. The script searches this JSON array for a matching stock number.
+2.  **AJAX REST Fallback**: If the vehicle is not found in the cached export (e.g., it was just added and the cache hasn't refreshed), it falls back to a live REST API call (`/wp-json/sdas/v1/vehicle-by-stock?stock_number=...`) to query the database directly.
+
+Developers can configure this behavior via the `sdas_tracking_hub_related_vehicle_configs` PHP filter, specifying the CSS selector, the source of the stock number (text, attribute, or dataset), and the pages where the tracking should run.
 
 ## Related Documentation
 
