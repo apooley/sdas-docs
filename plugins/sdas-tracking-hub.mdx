@@ -60,6 +60,14 @@ The **Logs** tab is your primary tool for QA and troubleshooting. Because the Tr
 5.  **Verify Success**: A status of `Success` (HTTP 200/204) means the platform accepted the event.
 6.  **Troubleshoot Failures**: If the status is `Failed`, the details modal will show the error message returned by the platform (e.g., "Invalid API Key" or "Missing Required Parameter"). The Tracking Hub will automatically attempt to retry failed events based on its internal schedule.
 
+## GTM dataLayer Object Mutation
+
+A key reliability improvement introduced in the March 23rd update addresses a common GTM integration issue. When a VDP view event is pushed to the `dataLayer`, the Tracking Hub now wraps the `dataLayer.push` method to perform a **property merge** rather than a full object replacement.
+
+In practice, this means that if a GTM tag reads a `dataLayer` variable (like `vehicle_make`) at the same time the Tracking Hub is pushing a new event, the existing properties on the current `dataLayer` state object are preserved and merged with the incoming payload. This prevents race conditions where GTM tags would read empty values because the `dataLayer` object was replaced before the tag could read it.
+
+This behavior is applied automatically and requires no configuration.
+
 ## Server-Side Tracking Endpoint
 
 The Tracking Hub exposes a dedicated REST API endpoint for receiving tracking events from your front-end. 

@@ -181,6 +181,18 @@ Lead submissions are often your primary conversions. Together with [Forms Extens
 
 Tracking Hub attaches to the submission event and passes anonymized metadata server-side while PII stays within your secure WordPress and CRM flows.
 
+## Related Vehicle Tracking (Carousels and Widgets)
+
+If your site includes "Related Vehicles", "Similar Vehicles", or "Recently Viewed" carousels outside the main inventory grid, Tracking Hub can automatically track interactions with those elements and push rich vehicle data to the GTM `dataLayer`.
+
+When a visitor interacts with a related vehicle element, the plugin:
+1. Reads the stock number from the element (from its text, a data attribute, or a custom attribute).
+2. Looks up the vehicle's full details (make, model, year, price) from a cached inventory file — this is fast and does not add server load.
+3. If the vehicle is not in the cache (e.g., it was just added), it falls back to a live lookup.
+4. Pushes a `relatedto_vehicle` event to the `dataLayer` with the full vehicle context attached.
+
+This feature requires a developer to configure the CSS selectors and page paths where it should run. Once configured, it works automatically for every visitor.
+
 ## Practical admin test plan
 
 Use this plan in a staging or test environment where SDAS Tracking Hub is enabled and connected to non-production properties. Work with whoever monitors SDAS admin screens or logs to confirm results.

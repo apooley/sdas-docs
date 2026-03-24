@@ -100,8 +100,14 @@ The plugin automatically manages the browser history. When a visitor applies a f
 ### Page Builder Compatibility
 SDAS Vehicle Filters is designed to work seamlessly with page builders like **Breakdance**, **Beaver Builder**, and **Elementor**. The `auto_detect="yes"` setting allows the filters to find and update vehicle loops rendered by these builders without manual CSS selector configuration.
 
+### Multi-Select Filters and Active Chips
+Several filter types (Body Type, Condition, Transmission, Location, Colour, and others) now support **additive multi-selection**. Rather than replacing the current selection, each choice is added to a list of active filters. Selections are displayed as removable **chips** above the results grid, and the dropdown resets to its placeholder so the visitor can add another value. Clicking the × on a chip removes only that value, leaving other active selections intact.
+
 ### Search Integration
 When the `[sdas_vehicle_search]` shortcode is placed inside or near a filter container, it automatically integrates with the active filter instance. Typing a keyword into the search box will trigger the main filter AJAX request, updating the primary grid instead of loading a separate results panel.
+
+### Floating Layout — Docked State
+The `floating` layout has a **docked state** that activates on desktop viewports. When docked, the active chips panel expands into a two-column grid so visitors can see all their active selections at a glance without opening the full filter panel. The "Clear All" chip spans the full width for easy access.
 
 ## Setup: create an inventory-with-filters page
 

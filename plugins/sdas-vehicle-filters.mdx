@@ -51,6 +51,14 @@ Returns the list of models for a given make so the front end can dynamically pop
 
 Use this action when the user selects or changes the vehicle make and you need the corresponding models without reloading the page.
 
+## Filter Architecture
+
+### Additive Multi-Selects
+Recent updates introduced a standardized `getAdditiveSelectAttributes()` method in `BaseFilterType`. This allows standard `<select>` elements to function as "additive" multi-selects on the front end. When a user selects an option, the JavaScript layer intercepts it, adds it to an array of active filters, and clears the select input, displaying the active selections as chips instead.
+
+### Query Normalization
+The `AjaxHandler` and `QueryBuilder` now strictly normalize incoming filter payloads. Array values (like multiple selected models) are deduplicated and sanitized, and range values (min/max) are explicitly cast to floats before being passed to the query builder, preventing malformed queries from breaking the grid.
+
 ## Developer Hooks
 
 ### Action: `sdas_filters_applied`
