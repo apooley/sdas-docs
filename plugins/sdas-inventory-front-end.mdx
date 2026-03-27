@@ -23,7 +23,7 @@ When properly configured, SDAS Inventory supports a complete, modern car shoppin
 These shortcodes build the primary discovery phase for your visitors.
 
 ### `[sdas_vehicle_grid]`
-Displays a grid or list of vehicles. This is the primary way to show multiple vehicles on a page.
+Displays a grid or list of vehicles. This is the primary way to show multiple vehicles on a page. The grid uses a modern, high-conversion card design that automatically adapts to mobile and desktop views.
 
 <Callout kind="info">
 **SEO Benefit**: When you place `[sdas_vehicle_grid]` on a standard WordPress page, SDAS automatically detects it and emits `CollectionPage` and `ItemList` Schema.org structured data for the vehicles shown in the grid.
@@ -46,10 +46,11 @@ Displays a grid or list of vehicles. This is the primary way to show multiple ve
 | `pagination_style` | `numbers` | Pagination style: `numbers`, `simple`, or `load_more`. |
 | `show_compare_button` | `false` | Whether to show the "Add to Compare" button on cards. |
 | `show_quick_view` | `false` | Whether to show the "Quick View" button on cards. |
+| `awards_style` | `ribbon_banner` | How to display awards: `ribbon_banner` or `text_badges`. |
 
 **Display Options (Show/Hide Fields):**
 You can toggle specific vehicle details on the cards using `true` or `false`:
-`show_year`, `show_make`, `show_model`, `show_price`, `show_condition`, `show_body_type`, `show_transmission`, `show_mileage`, `show_stock_number`, `show_vin`, `show_location`, `show_drivetrain`, `show_engine`, `show_fuel_type`.
+`show_year`, `show_make`, `show_model`, `show_price`, `show_condition`, `show_body_type`, `show_transmission`, `show_mileage`, `show_stock_number`, `show_vin`, `show_location`, `show_drivetrain`, `show_engine`, `show_fuel_type`, `show_nhtsa_rating`, `show_awards`.
 
 Example:
 ```text

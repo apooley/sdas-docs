@@ -59,6 +59,12 @@ Recent updates introduced a standardized `getAdditiveSelectAttributes()` method 
 ### Query Normalization
 The `AjaxHandler` and `QueryBuilder` now strictly normalize incoming filter payloads. Array values (like multiple selected models) are deduplicated and sanitized, and range values (min/max) are explicitly cast to floats before being passed to the query builder, preventing malformed queries from breaking the grid.
 
+### Floating Layout Logic
+The `floating` layout uses a sophisticated docking mechanism implemented in `filters.js`. It calculates a `floatingDockThreshold` based on the initial scroll position and updates the container state (`is-floating-docked`, `is-floating-top-docked`) using a transition timer to ensure smooth animations. Developers can hook into `syncFloatingSectionLayout()` to adjust custom elements when the filter panel docks or undocks.
+
+### AJAX Handler Refactoring
+The `AjaxHandler` has been refactored to use a more modular approach, delegating query construction to the `QueryBuilder` and cache management to the `CacheManager`. This ensures that the AJAX entry points remain thin and focused on request/response handling.
+
 ## Developer Hooks
 
 ### Action: `sdas_filters_applied`
