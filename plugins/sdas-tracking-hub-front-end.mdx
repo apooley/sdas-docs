@@ -41,6 +41,19 @@ Visitors never see "Tracking Hub" by name. They notice:
 
 If visitors change their consent, Tracking Hub adjusts silently in the background. The site should feel the same with tracking on or off.
 
+## The Tracking Hub Admin Interface
+
+The Tracking Hub is accessible from **SDAS → Tracking Hub** in the WordPress admin sidebar. It contains four tabs:
+
+| Tab | Purpose |
+| :--- | :--- |
+| **Overview** | System status dashboard showing which platforms are connected (Google Ads, Meta API, GA4) with their configuration status and quick-action buttons. |
+| **Settings** | Configure API credentials and enable/disable each tracking platform. |
+| **Event Config** | Configure which events are tracked and how. |
+| **Logs** | View a log of recent tracking events for debugging. |
+
+On the Overview tab, each platform card shows either **CONFIGURED** (green) or **NOT CONFIGURED** (orange) status, with a **Configure** button to jump to its settings. The Quick Actions panel provides **Test API** and **Test GA4** buttons for validating your connections.
+
 ## What you control as a WordPress admin
 
 As a WordPress administrator or site builder, you influence how well Tracking Hub works through a few key decisions.

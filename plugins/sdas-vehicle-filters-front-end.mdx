@@ -41,23 +41,24 @@ You build your inventory search page with two shortcodes:
 #### Primary vs. Secondary Filters
 
 In modern layouts (`topbar_chips` and `stacked_compact`), the plugin automatically splits your filters into two groups to keep the UI clean:
-- **Primary Filters**: The first 4 filters (based on your `filter_order` or the internal priority list) are shown prominently.
+- **Primary Filters**: The first 4 filters — always `make`, `model`, `body_type`, and `price_range` (when present) — are shown prominently, regardless of the order you specify.
 - **Secondary Filters**: Any remaining filters are hidden behind a "More Filters" or "More Options" toggle button.
 
-When choosing your `filter_types`, put your most important filters (like Make, Model, Price, Body Type) first so they appear as Primary Filters.
+The plugin enforces this leading order internally. If you want to control which filters appear in the secondary group, use the `filter_order` attribute to specify the full order; the first four eligible filters from the priority list will still be promoted to primary.
 
 **Available Attributes:**
 
 | Attribute | Default | Description |
 | :--- | :--- | :--- |
-| `filter_layout` | `classic` | Layout style for the filter panel. Options: `classic`, `topbar_chips`, `stacked_compact`, `sidebar_desktop_modal_mobile`, `floating`. The legacy `layout` attribute (`horizontal` or `vertical`) is now an alias for `classic`. |
-| `filter_types` | `make,model,year_range,price_range,body_type,condition,transmission,seats` | Comma-separated list of filters to display. |
-| `filter_order` | (empty) | Comma-separated list to explicitly override the default display order of filters. If not provided, filters are ordered by internal priority: `make`, `price_range`, `body_type`, `condition`, `model`, `year_range`, `mileage_range`, `transmission`, `fuel_type`, `seats`, `status`, `location`, `colour`, `style`, `drivetrain`, `keyword`. |
+| `filter_layout` | `classic` | Layout style for the filter panel. Options: `classic`, `topbar_chips`, `stacked_compact`, `sidebar_desktop_modal_mobile`, `floating`. The legacy `layout` attribute (`horizontal` or `vertical`) is treated as an alias for `classic`. |
+| `filter_types` | `make,model,body_type,price_range,year_range,condition,transmission,seats` | Comma-separated list of filters to display. |
+| `filter_order` | (empty) | Comma-separated list to explicitly override the default display order of filters. If not provided, filters are ordered by internal priority: `make`, `model`, `body_type`, `price_range`, `condition`, `year_range`, `mileage_range`, `transmission`, `fuel_type`, `seats`, `status`, `location`, `colour`, `style`, `drivetrain`, `keyword`. |
+| `float_location` | `left` | When using the `floating` layout, controls where the floating panel docks. Options: `left`, `top`. |
 | `show_counts` | `yes` | Whether to show the number of matching vehicles next to each filter option. |
 | `show_reset` | `yes` | Whether to display the "Clear Filters" button. |
 | `show_quick_presets` | `yes` | Whether to display quick preset buttons for common filter combinations. |
 | `show_vehicle_search` | `no` | Whether to display an inline vehicle search input field within the filter panel. |
-| `target_selector` | `.sdas-vf-results-container` | CSS selector for the results container that the filters will update. `auto` will attempt to detect the vehicle loop automatically. |
+| `target_selector` | `auto` | CSS selector for the results container that the filters will update. The default `auto` attempts to detect the vehicle loop automatically. Set to a specific CSS selector (e.g., `.sdas-vf-results-container`) only if auto-detection fails. |
 | `auto_detect` | `yes` | Enable automatic detection of vehicle loops for page builders like Breakdance or Beaver Builder. If `target_selector` is explicitly set, `auto_detect` will be ignored. |
 
 Example:

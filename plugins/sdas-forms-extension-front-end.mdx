@@ -183,43 +183,22 @@ After publishing, visit the pages yourself to confirm:
 
 </Step>
 
-<Step title="Mark the form as a vehicle lead form in SDAS" icon="settings">
+<Step title="Map the form in SDAS Forms" icon="settings">
 
-In the WordPress admin, open the **SDAS Forms Extension** settings.
+In the WordPress admin, navigate to **SDAS → Forms**. The SDAS Forms page has four tabs:
 
-Find the area where you can manage forms and:
+| Tab | Purpose |
+| :--- | :--- |
+| **Form Mapping** | Map WPForms form fields to SDAS lead types and conversion tracking data points. |
+| **System Mapping** | Map Tracking Hub and system-level values (not individual form fields). |
+| **Lead Types** | Define and manage the lead type categories (e.g., vehicle, finance, test_drive, contact). |
+| **ADF Emails** | Configure ADF (Auto-lead Data Format) email delivery settings. |
 
-- Locate the WPForms form you just placed on your pages
-- Mark or toggle it as a **vehicle lead form**
+On the **Form Mapping** tab, use the **Select Form to Map** dropdown to choose your WPForms form. Previously mapped forms are shown as cards below, each displaying the **Lead Type** (e.g., `vehicle`, `finance`, `test_drive`, `contact`) and the number of fields mapped. Each card has **Payload Preview**, **Edit**, and **Delete** actions.
 
-At a high level, this tells SDAS:
+When editing a form mapping, assign the appropriate lead type and map each WPForms field to the corresponding SDAS lead field (contact name, email, phone, vehicle reference, inquiry type, etc.).
 
-- Treat submissions from this form as **vehicle leads**, not generic contact forms
-- Attach the lead to a vehicle context when possible
-- Include these submissions in SDAS **lead reporting** and **audit trails**
-
-You do not need to change the form’s shortcode or page placement; the change happens entirely in SDAS settings.
-
-</Step>
-
-<Step title="Map WPForms fields to SDAS lead fields" icon="settings">
-
-Still within SDAS Forms Extension settings, map which form fields correspond to SDAS lead data.
-
-Typical mappings include:
-
-- **Contact fields**:
-  - Name field → lead contact name
-  - Email field → lead email
-  - Phone field → lead phone
-- **Vehicle fields**:
-  - Stock number, VIN, or vehicle selector field → vehicle reference
-  - Optional description or notes about the vehicle
-- **Lead meta**:
-  - Dropdown or radio buttons for "Inquiry type" → lead intent (test drive, availability, finance, trade-in)
-  - Hidden fields or dropdowns for "Source" or "Campaign" → lead source metadata
-
-Mapping tells SDAS which WPForms fields to read. You do **not** need to rename field IDs or add special field types; you only select the existing fields from your form.
+You do **not** need to change the form's shortcode or page placement; the change happens entirely in SDAS settings.
 
 </Step>
 
@@ -314,6 +293,22 @@ If leads are missing details or show the wrong intent, you usually fix it by:
 - Updating which fields are required in WPForms
 - Adjusting **field mappings** in SDAS Forms Extension settings
 - Confirming that the correct form is marked as a **vehicle lead form**
+
+## Reviewing Leads in the Admin
+
+Once forms are mapped and submissions are coming in, you can review all leads from **SDAS → Leads** in the WordPress admin sidebar. The Leads page shows a filterable table with the following columns:
+
+| Column | Description |
+| :--- | :--- |
+| **Date** | Date and time the lead was submitted. |
+| **Type** | Lead type (e.g., Test Drive, Inquiry, General Contact, Finance). |
+| **Customer** | Customer name as captured from the form. |
+| **Vehicle** | The vehicle the lead is associated with, if applicable. |
+| **Source** | The source of the lead (e.g., Website). |
+| **CRM Sync** | Shows the CRM sync status and a truncated sync ID. A **Resync** button allows you to manually re-trigger CRM delivery for a specific lead. |
+| **Actions** | A **View Details** button opens the full lead record. |
+
+At the top of the Leads page, three quick-filter tabs let you switch between **All Leads**, **My Leads**, and **Unassigned**. Additional dropdowns allow filtering by **Status**, **Type**, and **Priority**.
 
 ## How it connects to other SDAS plugins
 

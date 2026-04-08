@@ -13,12 +13,25 @@ The Team Members system allows you to create a professional directory of your st
 
 ### Managing Staff
 
-Team members are managed under the **Team Members** menu in the WordPress admin. Each team member profile includes:
+Team members are managed under the **Team Members** menu in the WordPress admin. The **Team Members** menu contains:
 
--   **Name and Bio**: Use the standard title and editor fields for the member's name and a detailed biography.
--   **Role**: A dedicated **Role** meta box allows you to specify the member's exact job title (e.g., "Sales Manager", "Service Technician").
--   **Photo**: Set a **Team Member Photo** using the Featured Image field. This photo is used in the directory grid.
--   **Departments**: Organize your team using the **Departments** taxonomy (e.g., Sales, Service, Finance, Management).
+| Menu Item | Description |
+| :--- | :--- |
+| **All Team Members** | View and manage all existing team member profiles. |
+| **Add New Team Member** | Create a new team member profile. |
+| **Departments** | Manage the Departments taxonomy used to organize staff. |
+
+Each team member edit screen contains the following fields and meta boxes:
+
+| Field / Meta Box | Description |
+| :--- | :--- |
+| **Title** (Name) | The team member's full name (e.g., "Scott Davidson"). |
+| **Content Editor** | A full biography or description for the team member. |
+| **Role** | A dedicated meta box for the member's exact job title or role (e.g., "Admin Support", "Sales Manager"). |
+| **Excerpt** | An optional short summary used in grid displays and theme templates. |
+| **Team Member Photo** | A dedicated photo meta box (separate from the standard Featured Image). Click **Set team member photo** to upload or select from the media library. |
+| **Departments** | A checkbox taxonomy panel. Available departments include Admin, Sales, Service, and Service Managers. New departments can be added inline. |
+| **Slug** | The URL slug for the team member post (visible via Screen Options). |
 
 ### Displaying the Team
 
@@ -31,9 +44,10 @@ The shortcode is highly configurable to match your page layout:
 | Attribute | Default | Description |
 | :--- | :--- | :--- |
 | `department` | (empty) | Filter by department slug (e.g., `department="sales"`). |
-| `posts_per_page` | `20` | Number of members to show. |
-| `columns` | `3` | Number of columns in the grid layout. |
-| `orderby` | `title` | Sort by `title`, `menu_order`, `date`, or `rand`. |
+| `posts_per_page` | `20` | Number of members to show (1–100). |
+| `layout` | `grid` | Display layout. Currently only `grid` is supported. |
+| `columns` | `3` | Number of columns in the grid layout (minimum 1). |
+| `orderby` | `title` | Sort by `title`, `menu_order`, `date`, `ID`, `name`, or `rand`. |
 | `order` | `ASC` | Sort order (`ASC` or `DESC`). |
 | `show_role` | `true` | Whether to display the member's job title. |
 | `show_excerpt` | `true` | Whether to show the short excerpt/tagline. |
@@ -49,20 +63,42 @@ The Job Postings system provides a structured way to list career opportunities w
 
 ### Creating a Job Listing
 
-Job listings are managed under the **Job Listings** menu. In addition to the job title and description, each listing includes a comprehensive **Job Schema** meta box:
+Job listings are managed under the **Job Listings** menu in the WordPress admin. The **Job Listings** menu contains:
 
--   **Employment Details**: Specify the **Employment Type** (Full-time, Part-time, Contract, etc.) and the **Date Posted**.
--   **Location**: Define if the role is **Fully Remote** or linked to a specific city and region.
--   **Compensation**: Enter the **Salary Value**, **Currency**, and **Salary Unit** (per hour, per year, etc.).
--   **Validity**: Set a **Valid Through** date to indicate when the job posting expires.
--   **Application**: Provide an optional **Apply URL** for external application tracking systems.
+| Menu Item | Description |
+| :--- | :--- |
+| **All Job Listings** | View and manage all existing job listings. |
+| **Add New Job Listing** | Create a new job listing. |
+
+The job listing edit screen uses the **block editor** (Gutenberg). In addition to the job title and content (the full job description), each listing includes a comprehensive **Job Schema** meta box in the lower portion of the screen:
+
+| Field | Description |
+| :--- | :--- |
+| **Date Posted** | The date the job was posted. Required for JobPosting schema. |
+| **Employment Type** | Select from: Full-time, Part-time, Contractor, Temporary, Intern, Volunteer, Per diem, or Other. |
+| **Apply URL** | Optional URL for external application tracking systems. Stored for editorial/front-end use only. |
+| **Valid Through** | The date the job posting expires. |
+| **Remote Role** | Checkbox: "This job is fully remote." Remote jobs require an Applicant Country. Local jobs require City, Region, and Country. |
+| **Location City** | The city where the job is located (required for non-remote jobs). |
+| **Location Region** | The province or state (required for non-remote jobs). |
+| **Location Country** | The country (required for non-remote jobs). |
+| **Applicant Country** | Required for fully remote jobs. |
+| **Salary Value** | The numeric salary amount. |
+| **Salary Currency** | A 3-letter currency code (e.g., `CAD` or `USD`). |
+| **Salary Unit** | Select from: Per hour, Per day, Per week, Per month, Per year. |
+
+The sidebar also contains a **Set job listing image** option and an **Add an excerpt** field.
 
 ### Schema Status and SEO
 
-A **Schema Status** box in the sidebar provides real-time feedback on your listing's SEO readiness:
+A **Schema Status** panel in the sidebar provides real-time feedback on your listing's SEO readiness. The status will show:
 
+-   **Not Eligible** (before publishing): The job must be published before schema can appear on the front end. Missing required fields are listed explicitly (e.g., Job description, Date posted, Location city, Location region, Location country).
 -   **Eligible**: The listing has all required fields and will be indexed by Google For Jobs once published.
--   **Warnings/Missing Fields**: If required schema fields (like Location or Salary) are missing, the status box will list exactly what needs to be fixed.
+
+<Callout kind="info">
+The Schema Status panel lists exactly which required fields are missing, making it easy to ensure your listing is fully optimized before publishing.
+</Callout>
 
 ### Job Archives
 

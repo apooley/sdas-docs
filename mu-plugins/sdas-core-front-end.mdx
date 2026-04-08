@@ -50,7 +50,7 @@ SDAS Core supports a smoother, more trustworthy experience on the public site:
 Day to day, you work mainly in WordPress admin and on front-end templates that rely on SDAS feature plugins. SDAS Core shapes that work in these ways:
 
 - **Use shared SDAS admin UX**  
-  SDAS Core provides the main SDAS menus, dashboard-style pages, settings infrastructure, quick actions, and index administration screens that inventory, forms, filters, tracking, and other plugins plug into. You manage **most SDAS settings and tools in one place**, instead of hunting through multiple submenus.
+  SDAS Core provides the main SDAS menus, dashboard-style pages, settings infrastructure, quick actions, and index administration screens that inventory, forms, filters, tracking, and other plugins plug into. You manage **most SDAS settings and tools in one place**, instead of hunting through multiple submenus. The main SDAS menu includes Dashboard, Leads, Health, SDAS Settings, Import Logs, Import Settings, Tracking Hub, Forms, CRM Sync Logs, CRM Settings, CRM Sync Status, Custom API, Database Indexes, NoCodeBackend, and OpenAI Settings.
 
 - **Rely on consistent behavior across SDAS plugins**  
   Input validation, error handling, and logging live in Core, so SDAS plugins behave more consistently. For example, if a filter option or form setting has invalid input, you should see a similar validation pattern across SDAS tools.
@@ -173,13 +173,62 @@ When you see SDAS admin screens indicating degraded health (for example, warning
 
 ### Shared admin UX for SDAS tools
 
-SDAS Core provides:
+SDAS Core provides the top-level **SDAS** menu in WordPress admin, which serves as the central hub for all SDAS plugin management. The SDAS menu contains the following items:
 
-- SDAS top-level menus and navigation in WordPress admin.
-- Dashboard-style overviews and index administration screens.
-- Shared settings infrastructure and quick actions.
+| Menu Item | Purpose |
+| :--- | :--- |
+| **Dashboard** | System overview with health status, vehicle count, lead count, and plugin status. |
+| **Leads** | View and manage all form-generated leads with CRM sync status. |
+| **Health** | Detailed system health diagnostics. |
+| **SDAS Settings** | System-wide settings across seven tabs: System Settings, Plugin Management, Database Management, Error Log, Dealership Info, Schema, and Calculator Settings. |
+| **Import Logs** | View logs from CSV vehicle import operations. |
+| **Import Settings** | Configure CSV import behaviour and schedules. |
+| **Tracking Hub** | Configure and monitor Google Ads, Meta API, and GA4 tracking. |
+| **Forms** | Map WPForms forms to SDAS lead types and configure ADF email delivery. |
+| **CRM Sync Logs** | View logs of CRM synchronization events. |
+| **CRM Settings** | Configure CRM integration credentials and behaviour. |
+| **CRM Sync Status** | Monitor the current state of CRM sync queues. |
+| **Custom API** | Configure custom API endpoints. |
+| **Database Indexes** | Manage and rebuild SDAS database indexes. |
+| **NoCodeBackend** | No-code backend configuration tools. |
+| **OpenAI Settings** | Configure the OpenAI API key and model settings used by AI-powered features. |
+
+#### The SDAS Dashboard
+
+The SDAS Dashboard (accessible via **SDAS → Dashboard**) is the first screen you see after installation. It provides at a glance:
+
+- **System Status** — Four summary cards: Overall Health (with a green/amber/red indicator), Total Vehicles, 7 Day Lead Count, and Active Plugins.
+- **Quick Actions** — Shortcut buttons: Add Vehicle, Manage Inventory, Import Vehicles, System Health, and Settings.
+- **Plugin Status** — A table listing each active SDAS plugin (SDAS Core, SDAS Inventory, SDAS CSV Importer, SDAS Forms Extension, SDAS Tracking Hub, SDAS CRM Connector) with its status badge (ACTIVE) and version number.
 
 Front-end plugins such as Inventory (front end), Vehicle Filters (front end), Forms Extension (front end), CRM Connector (front end), CSV Importer (front end), and Tracking Hub (front end) rely on this shared UX for their configuration and data views.
+
+#### SDAS Settings
+
+The **SDAS Settings** page (**SDAS → SDAS Settings**) is organized into seven tabs:
+
+| Tab | Description |
+| :--- | :--- |
+| **System Settings** | Core performance, debug, notification, analytics, and privacy settings (see below). |
+| **Plugin Management** | Enable or disable individual SDAS plugins. |
+| **Database Management** | Manage and maintain SDAS database tables and indexes. |
+| **Error Log** | View recent SDAS error log entries for troubleshooting. |
+| **Dealership Info** | Configure dealership name, address, phone, and other business details used in schema and templates. |
+| **Schema** | Configure global Schema.org structured data settings for the dealership. |
+| **Calculator Settings** | Configure the vehicle payment calculator defaults (e.g., interest rates, terms). |
+
+The **System Settings** tab contains the following setting groups:
+
+| Setting Group | Fields |
+| :--- | :--- |
+| **Performance Settings** | Log Level (Debug/Info/Warning/Error), Cache Duration (seconds, 300–86400), Max Import Batch (vehicles per batch, 10–1000), Action Scheduler Concurrency (1–5 concurrent batches), Action Scheduler Time Limit (seconds per batch, 30–300). |
+| **Debug Settings** | Debug Mode (enable/disable debug mode for troubleshooting). |
+| **Notification Settings** | Email Notifications (enable/disable), Admin Email (address for system event notifications). |
+| **Analytics Settings** | Usage Analytics (enable/disable anonymized local telemetry — tracks feature usage, query performance, and error rates; 90-day retention). |
+| **Privacy & Compliance Settings** | Require Tracking Consent (enable PIPEDA/GDPR-compliant consent gate for click ID cookies; front end must set `sdas_tracking_consent=1` cookie when consent is granted). |
+| **BetterBugs Integration** | Enable/disable BetterBugs bug reporting widget. |
+
+Each setting group has its own **Reset to Defaults** button.
 
 Expect that:
 

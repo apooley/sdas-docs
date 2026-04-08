@@ -9,23 +9,53 @@ The SDAS Landing Pages system allows dealerships to create highly targeted, SEO-
 
 ## Admin Navigation and Interface
 
-Landing Pages are managed through a dedicated section in the WordPress admin sidebar, located directly under the Vehicles menu.
+Landing Pages are managed through a dedicated **Landing Pages** menu in the WordPress admin sidebar. The menu contains:
 
--   **All Landing Pages**: View and manage all existing landing pages.
--   **Add New**: Create a new landing page manually.
--   **Generate with AI**: Access the automated page generation tool.
--   **Images**: Configure default images for different vehicle body types.
+| Menu Item | Description |
+| :--- | :--- |
+| **All Landing Pages** | View and manage all existing landing pages. |
+| **Add New Landing Page** | Create a new landing page manually. |
+| **Makes** | Manage the Makes taxonomy used to associate landing pages with vehicle makes. |
+| **Models** | Manage the Models taxonomy used to associate landing pages with vehicle models. |
+| **Body Types** | Manage the Body Types taxonomy for landing pages. |
+| **Locations** | Manage the Locations taxonomy for landing pages. |
+| **Features** | Manage the Features taxonomy (used for highlighting up to 3 features per page). |
+| **Images** | Configure default images for different vehicle body types. |
+| **Generate with AI** | Access the automated AI-powered page generation tool. |
 
 ## Creating Landing Pages
 
 ### Manual Creation
 
-When creating a landing page manually (`Landing Pages -> Add New`), you have access to several specialized fields and meta boxes:
+When creating a landing page manually (**Landing Pages → Add New Landing Page**), the classic editor is used. The edit screen contains the following fields and meta boxes:
 
--   **Page Content**: Use the standard WordPress editor to define the main body of the page.
--   **Featured Items**: A meta box in the sidebar allows you to select up to 3 **SDAS Features** (e.g., "Heated Seats", "Backup Camera") to highlight on the page.
--   **Taxonomy Assignments**: Link the page to specific **Makes**, **Models**, **Body Types**, and **Locations**. These assignments are used by dynamic shortcodes to filter the inventory displayed on the page.
--   **Permalink Management**: Landing pages use the `/landing/` prefix by default (e.g., `yourdealership.com/landing/suvs-in-toronto/`). The system automatically checks for permalink conflicts with existing pages or posts.
+**Taxonomy Panels (sidebar):**
+
+| Panel | Type | Description |
+| :--- | :--- | :--- |
+| **Makes** | Checkbox taxonomy | Associate the page with one or more vehicle makes. |
+| **Models** | Checkbox taxonomy | Associate the page with one or more vehicle models. |
+| **Body Types** | Tag taxonomy | Associate the page with a body type (e.g., "dealership", "SUV"). |
+| **Locations** | Tag taxonomy | Associate the page with a location (e.g., "Nova Scotia"). |
+| **Features** | Tag taxonomy | Select up to 3 features to highlight on the page (e.g., "Heated Seats"). |
+| **Order** | Numeric field | Controls the display order of the landing page. |
+
+**Generated Content Meta Box:**
+
+A dedicated meta box below the main editor contains structured content fields:
+
+| Field | Description |
+| :--- | :--- |
+| **Headline** | The main page headline. |
+| **Subheadline** | A supporting subheadline beneath the main headline. |
+| **Opening Paragraph** | An introductory paragraph for the page. |
+| **Before Content Subheading** | A subheading that appears before the main content block (e.g., "Guaranteed Financing – We'll Get You Approved"). |
+| **Main Content** | The primary body copy. Supports basic rich text. |
+| **CTA Text** | The call-to-action button label (e.g., "Shop All Vehicles in Nova Scotia"). |
+| **CTA Link** | The URL the CTA button links to (e.g., `/inventory/`). |
+| **Benefits** | A list of bullet-point benefits, one per line (e.g., "116-point mechanical inspection", "New MVI within 30 days"). |
+
+**Permalink:** Landing pages use the `/landing/` prefix by default (e.g., `yourdealership.com/landing/used-dealership-nova-scotia/`).
 
 ### AI-Powered Generation
 
