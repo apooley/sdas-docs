@@ -163,6 +163,19 @@ Navigate to **Vehicles → Inventory Settings** to configure two key areas:
 Once saved, click **Save Changes** to apply.
 </Step>
 
+<Step title="Export vehicle links" icon="download">
+On the **Vehicles → All Vehicles** screen, two export buttons appear above the vehicle list:
+
+- **Export Links List** — Downloads a JSON file containing each vehicle’s `stock_number`, `vin`, and `permalink`.
+- **Export Links CSV** — Downloads the same data as a CSV file with columns `Stock#`, `VIN`, and `URL`, ready to open in Excel or import into third-party tools.
+
+Both exports respect the active **Status** filter, so you can export only available vehicles if needed. The JSON export is cached according to your Export Cache Settings; the CSV uses the same cached dataset.
+
+<Callout kind="info">
+The export payload contains `stock_number`, `vin`, and `permalink` only. The vehicle description field was removed from the export in a recent update to keep the file compact.
+</Callout>
+</Step>
+
 <Step title="QA the Visitor Journey" icon="monitor">
 1. Open an incognito window and navigate to your inventory page.
 2. Verify the grid loads and pagination works.

@@ -49,10 +49,42 @@ The Tracking Hub is accessible from **SDAS → Tracking Hub** in the WordPress a
 | :--- | :--- |
 | **Overview** | System status dashboard showing which platforms are connected (Google Ads, Meta API, GA4) with their configuration status and quick-action buttons. |
 | **Settings** | Configure API credentials and enable/disable each tracking platform. |
-| **Event Config** | Configure which events are tracked and how. |
+| **Event Config** | Configure which events are tracked and how. Import and export event configurations as JSON bundles. |
 | **Logs** | View a log of recent tracking events for debugging. |
 
 On the Overview tab, each platform card shows either **CONFIGURED** (green) or **NOT CONFIGURED** (orange) status, with a **Configure** button to jump to its settings. The Quick Actions panel provides **Test API** and **Test GA4** buttons for validating your connections.
+
+<Callout kind="info">
+**Automatic setup on upgrade:** When Tracking Hub is updated, it automatically seeds any missing required runtime events (`vehicle_search`, `filters_applied`) into your Event Config and backfills any missing built-in vehicle event toggles and platform settings. You do not need to manually re-configure events after an update — existing custom events and settings are preserved.
+</Callout>
+
+### Event Config import and export
+
+The **Event Config** tab lets you manage your conversion event configurations and transfer them between environments (for example, from staging to production) using JSON bundles.
+
+**Exporting events:**
+
+Use the export panel on the Event Config tab to download your current event configuration as a JSON file. You can export all events at once, or select specific events for a partial export.
+
+**Importing events:**
+
+Upload a previously exported JSON bundle to preview what will change before committing. The import preview shows a summary with the following counts:
+
+| Category | Meaning |
+| :--- | :--- |
+| **Valid** | Events that will be imported cleanly. |
+| **New** | Events not currently in your configuration that will be added. |
+| **Overwrites** | Events already in your configuration that will be replaced. |
+| **Invalid** | Events with validation errors that cannot be imported. |
+| **Duplicate conflicts** | Events with the same ID appearing more than once in the bundle. |
+
+<Callout kind="warning">
+**Apply Import is disabled until all events in the bundle are valid.** If the preview shows invalid events, you must resolve the errors in the source environment and re-export before you can apply the import.
+</Callout>
+
+Blocking errors are shown inline next to each affected event in the preview. Once all events are valid, the **Apply Import** button becomes active.
+
+---
 
 ## What you control as a WordPress admin
 

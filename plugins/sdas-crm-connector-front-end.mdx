@@ -137,13 +137,25 @@ You do not need to work with code or hooks, but you should understand how your c
 
 ### Where CRM Connector is configured
 
-Admins configure SDAS CRM Connector under `/wp-admin` in the SDAS plugins area. There they set:
+Admins configure SDAS CRM Connector under **SDAS → CRM Settings** in the WordPress admin. There they set:
 
 - **Which CRMs** (for example, Dynamics, HubSpot, Salesforce, REST targets) receive leads and vehicle data.
-- **Which events** from your site trigger CRM sync (lead submissions, vehicle updates, vehicle sold).
+- **Which events** from your site trigger CRM sync — leads and vehicles are now controlled by **separate toggles** (`Enable Lead Sync` and `Enable Vehicle Sync`), so you can turn one off without affecting the other.
 - **How fields map** from WordPress leads and vehicles into the CRM.
+- **Alert Email Address** — all CRM alert emails (sync failures, circuit-breaker trips) are sent to this address. Leave it blank to fall back to the site admin email.
 
 As a site builder, you rarely change these settings yourself, but your form design must align with them.
+
+### Reading the CRM Sync Logs
+
+The **SDAS → CRM Sync Logs** screen shows a table of every sync attempt. Two columns were added in a recent update that make it easier to trace lead delivery:
+
+| Column | What it shows |
+| :--- | :--- |
+| **Submitted** | The date and time the original lead or vehicle was submitted/created. For leads, this is the form submission time, not the sync queue time. |
+| **Queued By** | The internal source that triggered the sync (e.g., `Initial Submission`, `Admin Manual Sync`, `Admin Bulk Vehicle Sync`, `Admin Retry`, `Stale Leads Cron`). |
+
+These columns help you quickly distinguish between a lead that was queued automatically on submission versus one that was manually re-triggered by an admin.
 
 ### What to share with the CRM admin
 

@@ -200,6 +200,36 @@ When editing a form mapping, assign the appropriate lead type and map each WPFor
 
 You do **not** need to change the form's shortcode or page placement; the change happens entirely in SDAS settings.
 
+#### Copying mappings between forms (Import / Export)
+
+The **Previously Mapped Forms** area on the Form Mapping tab includes an **Import / Export** panel that lets you copy a complete set of field mappings from one form to another. This is useful when you have multiple similar forms (for example, a VDP enquiry form and a landing page enquiry form) and want to replicate a working mapping configuration without re-mapping every field by hand.
+
+**Exporting a mapping bundle:**
+
+Click the **Export** button on any previously mapped form card. The browser will download a JSON file named `sdas-form-mapping-{form-id}.json`. This bundle contains the form's lead types, field mappings, CRM (Dynamics) field mappings, system mappings, and system-dynamics mappings.
+
+**Importing a mapping bundle:**
+
+1. In the Import / Export panel, click **Choose File** and select the `.json` bundle you exported.
+2. Use the **Destination Form** dropdown to select the form you want to apply the mappings to.
+3. Click **Preview Import**. SDAS will analyse the bundle and attempt to match each source field to a field in the destination form using the following resolution order:
+   - **Exact** — the destination form has a field with the same ID as the source.
+   - **Auto** — the plugin finds exactly one destination field that matches by label or type.
+   - **Manual** — you assign the mapping yourself using the dropdowns shown in the preview.
+   - **Skip** — you explicitly exclude a field from the import.
+4. Review the preview summary. The preview shows which fields resolved successfully, which are unresolved (ambiguous or missing), and whether any CRM field targets are invalid.
+5. Click **Apply Import** to write the mappings to the destination form.
+
+<Callout kind="warning">
+**Apply Import is disabled until all fields are resolved and all CRM field targets are valid.** If the preview shows unresolved or invalid fields, you must either manually map them, skip them, or correct the CRM field names before you can apply.
+</Callout>
+
+<Callout kind="info">
+The source and destination forms must use the **same form provider** (e.g., both must be WPForms forms). Importing a bundle from a WPForms form onto a different provider type is blocked. If the destination form already has mappings, they will be **fully replaced** by the imported bundle — the preview will warn you when this is the case.
+</Callout>
+
+The import preview is stored temporarily (up to 1 hour). If you close the page without applying, you will need to re-upload the bundle and run the preview again.
+
 </Step>
 
 <Step title="Configure confirmations in WPForms" icon="monitor">
@@ -287,6 +317,7 @@ Behind the scenes, for forms marked as vehicle lead forms:
   - Which form the visitor used
   - What data was captured
   - How SDAS interpreted and routed the lead
+  - Whether an ADF email was sent successfully, including the receiver address and full XML payload (`adf_sent`), or whether delivery failed and why (`adf_send_failed`)
 
 If leads are missing details or show the wrong intent, you usually fix it by:
 
