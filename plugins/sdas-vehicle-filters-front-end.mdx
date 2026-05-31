@@ -42,7 +42,7 @@ You build your inventory search page with two shortcodes:
 
 In modern layouts (`topbar_chips` and `stacked_compact`), the plugin automatically splits your filters into two groups to keep the UI clean:
 - **Primary Filters**: The first 4 filters — always `make`, `model`, `body_type`, and `price_range` (when present) — are shown prominently, regardless of the order you specify.
-- **Secondary Filters**: Any remaining filters are hidden behind a "More Filters" or "More Options" toggle button.
+- **Secondary Filters**: Any remaining filters are hidden behind a "More Filters" or "More Options" toggle button. When expanded, these panels include a **"Hide Filters"** button to collapse the panel, and a **"Clear Filters"** button that appears only when active filters are applied.
 
 The plugin enforces this leading order internally. If you want to control which filters appear in the secondary group, use the `filter_order` attribute to specify the full order; the first four eligible filters from the priority list will still be promoted to primary.
 
@@ -97,6 +97,9 @@ The plugin automatically manages the browser history. When a visitor applies a f
 1. The URL is updated with query parameters (e.g., `?make=honda&model=civic`).
 2. A new history state is pushed, allowing the **Back** button to return to the previous filter state.
 3. Tracking identifiers (like `gclid` or `fbclid`) are preserved across filter changes and stored in cookies for lead attribution.
+
+### Pagination Scroll Behavior
+When a visitor navigates to a new page of results using the AJAX pagination controls, the page will automatically scroll back to the top of the viewport. This ensures the visitor immediately sees the new results rather than remaining at the bottom of the page.
 
 ### Page Builder Compatibility
 SDAS Vehicle Filters is designed to work seamlessly with page builders like **Breakdance**, **Beaver Builder**, and **Elementor**. The `auto_detect="yes"` setting allows the filters to find and update vehicle loops rendered by these builders without manual CSS selector configuration.
