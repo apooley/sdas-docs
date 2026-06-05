@@ -32,6 +32,8 @@ The importer includes sophisticated image processing capabilities, configurable 
 -   **Stock Image Filtering**: Automatically exclude generic stock images from your galleries by detecting "stock_image" patterns in URLs.
 -   **WPCompress Integration**: Enable CDN-based image optimization, allowing you to serve compressed, WebP-formatted images directly from the WPCompress network.
 -   **Re-Image Integration**: Connect to the Re-Image API to automatically process and enhance vehicle photos during the import process.
+    -   **Cache Warming**: Optionally enable CDN cache warming for Re-Image URLs. You can select specific widths (e.g., 250w, 650w) to prime after uploads, improving performance for common image sizes.
+    -   **Clear Pending Warmups**: A utility button to clear any pending cache warmup jobs from the background queue.
 
 ## The Import Process
 
@@ -50,7 +52,8 @@ The importer operates as a multi-stage pipeline designed for reliability and per
 
 The **Import Logs** screen (`SDAS -> Import Logs`) provides a detailed history of all synchronization attempts. You can monitor:
 
--   **Status**: See at a glance if an import was successful, completed with warnings, or failed.
+-   **Status**: See at a glance if an import was successful, completed with warnings, or failed. Active imports display a **Processing** badge, while stalled imports show an **Unfinished** badge.
+-   **Terminate Import**: For active imports, a "Terminate Import" button allows you to safely stop the running process at the next safe checkpoint.
 -   **Details**: Drill down into specific log entries to see which vehicles were added, updated, or skipped.
 -   **Log Levels**: Adjust the verbosity of logging (Error, Warning, Info, Debug) in settings to help diagnose complex issues.
 
