@@ -50,10 +50,11 @@ The plugin enforces this leading order internally. If you want to control which 
 
 | Attribute | Default | Description |
 | :--- | :--- | :--- |
-| `filter_layout` | `classic` | Layout style for the filter panel. Options: `classic`, `topbar_chips`, `stacked_compact`, `sidebar_desktop_modal_mobile`, `floating`. The legacy `layout` attribute (`horizontal` or `vertical`) is treated as an alias for `classic`. |
+| `filter_layout` | `classic` | Layout style for the filter panel. Options: `classic`, `topbar_chips`, `stacked_compact`, `sidebar_desktop_modal_mobile`, `floating`, `flyout`. The legacy `layout` attribute (`horizontal` or `vertical`) is treated as an alias for `classic`. |
 | `filter_types` | `make,model,body_type,price_range,year_range,condition,transmission,seats` | Comma-separated list of filters to display. |
 | `filter_order` | (empty) | Comma-separated list to explicitly override the default display order of filters. If not provided, filters are ordered by internal priority: `make`, `model`, `body_type`, `price_range`, `condition`, `year_range`, `mileage_range`, `transmission`, `fuel_type`, `seats`, `status`, `location`, `colour`, `style`, `drivetrain`, `keyword`. |
 | `float_location` | `left` | When using the `floating` layout, controls where the floating panel docks. Options: `left`, `top`. |
+| `flyout_location` | `bottom` | When using the `flyout` layout, controls where the flyout panel docks. Options: `bottom`, `right`. |
 | `show_counts` | `yes` | Whether to show the number of matching vehicles next to each filter option. |
 | `show_reset` | `yes` | Whether to display the "Clear Filters" button. |
 | `show_quick_presets` | `yes` | Whether to display quick preset buttons for common filter combinations. |
@@ -112,6 +113,9 @@ When the `[sdas_vehicle_search]` shortcode is placed inside or near a filter con
 
 ### Floating Layout — Docked State
 The `floating` layout has a **docked state** that activates on desktop viewports. When docked, the active chips panel expands into a two-column grid so visitors can see all their active selections at a glance without opening the full filter panel. The "Clear All" chip spans the full width for easy access. The floating panel now includes smooth transition animations when docking and undocking to provide a more polished user experience.
+
+### Flyout Layout
+The `flyout` layout provides a modern, app-like filtering experience. It renders a persistent "Filter Vehicles" trigger button that, when clicked, slides in a dedicated filter panel over a darkened backdrop. Visitors can interact with all filter controls inside the flyout and close it via the close button, clicking the backdrop, or pressing the Escape key. The flyout can be docked to the `bottom` or `right` of the screen using the `flyout_location` attribute.
 
 ## Setup: create an inventory-with-filters page
 
