@@ -54,7 +54,8 @@ The **Import Logs** screen (`SDAS -> Import Logs`) provides a detailed history o
 
 -   **Status**: See at a glance if an import was successful, completed with warnings, or failed. Active imports display a **Processing** badge, while stalled imports show an **Unfinished** badge.
 -   **Terminate Import**: For active imports, a "Terminate Import" button allows you to safely stop the running process at the next safe checkpoint.
--   **Details**: Drill down into specific log entries to see which vehicles were added, updated, or skipped.
+-   **Re-Image column**: The logs table includes a **Re-Image** column showing how many vehicles were queued for Re-Image processing during that import run. A dash (`—`) is shown when no vehicles were dispatched.
+-   **Details**: Drill down into specific log entries to see which vehicles were added, updated, or skipped. When Re-Image processing was dispatched, the details modal includes a **Re-Image Dispatch** section with a breakdown of the dispatch counts.
 -   **Log Levels**: Adjust the verbosity of logging (Error, Warning, Info, Debug) in settings to help diagnose complex issues.
 
 ### Common Troubleshooting Steps
@@ -62,6 +63,16 @@ The **Import Logs** screen (`SDAS -> Import Logs`) provides a detailed history o
 -   **Verify Cron**: Ensure that WordPress Cron is functioning correctly, as it is required to drive the background import batches.
 -   **Check Feed Access**: Confirm that the web server can reach the remote CSV URL and that the domain is in the "Allowed Feed Domains" list.
 -   **Monitor Memory**: If imports are failing on large files, try reducing the **Chunk Size** in settings.
+
+## Per-Vehicle Re-Image Status
+
+On any individual vehicle's edit screen, the **Re-Image Processing** meta box shows a **Post-import dispatch** status block when the vehicle has Re-Image dispatch or pending work recorded against it. This block displays:
+
+- The dispatch **status** (e.g., `queued`, `skipped`, `complete`).
+- A short **message** describing the outcome.
+- The **timestamp** and **import run ID** of the last dispatch event.
+
+This block is visible regardless of whether the Re-Image integration is currently enabled, so you can always inspect the last known dispatch state for a vehicle even after disabling the feature.
 
 ## Related Documentation
 
