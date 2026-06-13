@@ -50,13 +50,36 @@ The importer operates as a multi-stage pipeline designed for reliability and per
 
 ### Import Logs
 
-The **Import Logs** screen (`SDAS -> Import Logs`) provides a detailed history of all synchronization attempts. You can monitor:
+The **Import Logs** screen (`SDAS -> Import Logs`) provides a detailed history of all synchronization attempts.
 
--   **Status**: See at a glance if an import was successful, completed with warnings, or failed. Active imports display a **Processing** badge, while stalled imports show an **Unfinished** badge.
+**Status badges in the logs list** now use a richer lifecycle model:
+
+| Badge | Meaning |
+| :--- | :--- |
+| Completed | Import finished successfully |
+| Completed with warnings | Import finished but some vehicles had issues |
+| Failed | Import encountered a fatal error |
+| Skipped | Import was skipped (e.g., feed unchanged) |
+| Running + Processing | Import is actively processing in the background |
+| Pending + Queued | Import is queued, waiting for a lock or worker |
+| Stale / Unfinished | Import never completed and has no active background work |
+
 -   **Terminate Import**: For active imports, a "Terminate Import" button allows you to safely stop the running process at the next safe checkpoint.
 -   **Re-Image column**: The logs table includes a **Re-Image** column showing how many vehicles were queued for Re-Image processing during that import run. A dash (`—`) is shown when no vehicles were dispatched.
--   **Details**: Drill down into specific log entries to see which vehicles were added, updated, or skipped. When Re-Image processing was dispatched, the details modal includes a **Re-Image Dispatch** section with a breakdown of the dispatch counts.
 -   **Log Levels**: Adjust the verbosity of logging (Error, Warning, Info, Debug) in settings to help diagnose complex issues.
+
+#### View Details modal
+
+Clicking **View Details** on any log entry opens a structured diagnostic modal with the following sections:
+
+- **Summary** — Lifecycle label, DB status, Created / Started / Completed timestamps, human-readable duration, and a plain-English explanation of the import's current state.
+- **Issues** — A colour-coded list (error / warning / info) that surfaces actionable problems such as failed vehicles, stale imports, missing Re-Image API key, Action Scheduler failures, and partial-progress saves.
+- **Import Results** — Processed, Created, Updated, Failed, and **Skipped duplicate rows** counts.
+- **Error Message** — The raw error string if the import failed.
+- **Re-Image Dispatch** — A breakdown of Re-Image dispatch counts for the run, with a note that background Re-Image work may continue after the vehicle import completes.
+- **Diagnostics** — Activity state, Run ID, Force import flag, retry count, likely cause, and Action Scheduler pending/failed job counts. Useful for diagnosing stale or interrupted imports.
+- **Phase Timeline** — Timestamps for each internal import phase.
+- **Vehicle Errors** — Up to 20 individual per-vehicle error messages recorded during the run.
 
 ### Common Troubleshooting Steps
 
