@@ -34,6 +34,7 @@ The importer includes sophisticated image processing capabilities, configurable 
 -   **Re-Image Integration**: Connect to the Re-Image API to automatically process and enhance vehicle photos during the import process.
     -   **Cache Warming**: Optionally enable CDN cache warming for Re-Image URLs. You can select specific widths (e.g., 250w, 650w) to prime after uploads, improving performance for common image sizes.
     -   **Clear Pending Warmups**: A utility button to clear any pending cache warmup jobs from the background queue.
+    -   **Restore Image Order**: A maintenance tool to align vehicle gallery order with the live CSV feed. It compares vehicles against the feed and restores order for mismatched external/Re-Image galleries. It includes a **Dry run** mode (enabled by default) to preview changes. It never overwrites manually-ordered galleries and never re-uploads images.
 
 ## The Import Process
 
