@@ -48,7 +48,7 @@ The Tracking Hub is accessible from **SDAS → Tracking Hub** in the WordPress a
 | Tab | Purpose |
 | :--- | :--- |
 | **Overview** | System status dashboard showing which platforms are connected (Google Ads, Meta API, GA4) with their configuration status and quick-action buttons. |
-| **Settings** | Configure API credentials and enable/disable each tracking platform. Each tab (Google, Meta, GA4, Attribution) saves independently, so updating one platform will not affect the others. |
+| **Settings** | Configure API credentials and enable/disable each tracking platform. Each tab (Google, Meta, GA4, Attribution) saves independently, so updating one platform will not affect the others. Includes feature flags like Meta Visitor Identity. |
 | **Event Config** | Configure which events are tracked and how. Import and export event configurations as JSON bundles. |
 | **Logs** | View a log of recent tracking events for debugging. |
 
@@ -57,6 +57,14 @@ On the Overview tab, each platform card shows either **CONFIGURED** (green) or *
 <Callout kind="info">
 **Automatic setup on upgrade:** When Tracking Hub is updated, it automatically seeds any missing required runtime events (`vehicle_search`, `filters_applied`) into your Event Config and backfills any missing built-in vehicle event toggles and platform settings. You do not need to manually re-configure events after an update — existing custom events and settings are preserved.
 </Callout>
+
+### Meta Visitor Identity (enhanced matching)
+
+The Settings tab includes a feature flag for **Meta Visitor Identity**. When enabled (default: on), Tracking Hub stores a hashed, first-party identity cookie (`sdas_meta_visitor_identity`, 90-day expiry) after a visitor submits a form. 
+
+This cookie carries SHA-256-hashed email and/or phone data and is used to enrich subsequent Meta CAPI vehicle events with visitor identity data, improving match rates. 
+
+**Privacy and consent:** This feature strictly respects tracking consent. If a visitor denies tracking consent, the identity cookie is cleared immediately and no identity data is sent to Meta. Admins can toggle this feature off entirely in the Tracking Hub settings.
 
 ### Event Config import and export
 
