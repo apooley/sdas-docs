@@ -143,8 +143,21 @@ Admins configure SDAS CRM Connector under **SDAS → CRM Settings** in the WordP
 - **Which events** from your site trigger CRM sync — leads and vehicles are now controlled by **separate toggles** (`Enable Lead Sync` and `Enable Vehicle Sync`), so you can turn one off without affecting the other.
 - **How fields map** from WordPress leads and vehicles into the CRM.
 - **Alert Email Address** — all CRM alert emails (sync failures, circuit-breaker trips) are sent to this address. Leave it blank to fall back to the site admin email.
+- **Lead Mismatch Alerts** — configure automated hourly checks that email you if WPForms submissions fail to create matching SDAS leads after a grace period.
 
 As a site builder, you rarely change these settings yourself, but your form design must align with them.
+
+### Lead Mismatch Sync Panel
+
+The **SDAS → CRM Sync Status** screen includes a **Lead Mismatch Sync** panel. This tool helps you find and recover WPForms submissions that failed to create an SDAS lead (e.g., due to database errors or validation failures).
+
+From this panel, you can:
+- **Run Audit** — scan recent WPForms entries (up to 30 days) against the `sdas_leads` table to find missing leads.
+- **Review Results** — see a summary of Scanned, Matched, Missing, Ambiguous, and Skipped entries, along with a detailed table of missing leads.
+- **Bulk Replay** — select missing entries and click **Replay Selected** to re-process them through the SDAS lead creation pipeline. You can choose whether to queue CRM sync and/or send ADF emails during the replay.
+- **Export CSV** — download the audit results for offline review.
+
+*Note: If the CRM circuit breaker is open, a warning will appear. Replays can still create the local SDAS lead, but the CRM sync queue may be unavailable until the circuit resets.*
 
 ### Reading the CRM Sync Logs
 
