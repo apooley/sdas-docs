@@ -54,7 +54,7 @@ The plugin enforces this leading order internally. If you want to control which 
 | `filter_types` | `make,model,body_type,price_range,year_range,condition,transmission,seats` | Comma-separated list of filters to display. |
 | `filter_order` | (empty) | Comma-separated list to explicitly override the default display order of filters. If not provided, filters are ordered by internal priority: `make`, `model`, `body_type`, `price_range`, `condition`, `year_range`, `mileage_range`, `transmission`, `fuel_type`, `seats`, `status`, `location`, `colour`, `style`, `drivetrain`, `keyword`. |
 | `float_location` | `left` | When using the `floating` layout, controls where the floating panel docks. Options: `left`, `top`. |
-| `flyout_location` | `bottom` | When using the `flyout` layout, controls where the flyout panel docks. Options: `bottom`, `right`. |
+| `flyout_location` | `bottom` | When using the `flyout` layout, controls where the flyout panel docks. Options: `bottom`, `right`, `left`. |
 | `show_counts` | `yes` | Whether to show the number of matching vehicles next to each filter option. |
 | `show_reset` | `yes` | Whether to display the "Clear Filters" button. |
 | `show_quick_presets` | `yes` | Whether to display quick preset buttons for common filter combinations. |
@@ -93,6 +93,37 @@ The results grid includes a built-in sort dropdown that allows visitors to reord
 - Mileage (Low to High / High to Low)
 - Year (Newest/Oldest)
 
+### Sort Behavior and Precedence
+
+When a visitor selects a sort option from the dropdown, that selection always takes precedence over the grid's configured sort settings. This means the visitor's choice controls the display, not the page builder or grid widget settings.
+
+**Sort precedence order:**
+
+1. **Visitor-selected sort** (highest priority) — from the filter UI dropdown
+2. **Grid `orderby`/`order` setting** — from the vehicle grid element or shortcode
+3. **Default** — `price_desc` (Price: High to Low)
+
+The selected sort is also persisted in the URL as the `sdas_filter_sort` parameter, so visitors returning to the link (via bookmark or shared URL) see their previous sort applied.
+
+**Available sort options:**
+
+| Option | Description |
+| :--- | :--- |
+| `price_desc` | Price: High to Low |
+| `price_asc` | Price: Low to High |
+| `date_desc` | Newest First |
+| `date_asc` | Oldest First |
+| `mileage_asc` | Mileage: Low to High |
+| `mileage_desc` | Mileage: High to Low |
+| `year_asc` | Year: Oldest First |
+| `year_desc` | Year: Newest First |
+
+<Callout kind="info">
+
+If a visitor has not selected a sort, the grid's configured `orderby` and `order` settings apply. If neither is set, results default to `price_desc`.
+
+</Callout>
+
 ### URL and History Management
 The plugin automatically manages the browser history. When a visitor applies a filter:
 1. The URL is updated with query parameters (e.g., `?make=honda&model=civic`).
@@ -115,7 +146,7 @@ When the `[sdas_vehicle_search]` shortcode is placed inside or near a filter con
 The `floating` layout has a **docked state** that activates on desktop viewports. When docked, the active chips panel expands into a two-column grid so visitors can see all their active selections at a glance without opening the full filter panel. The "Clear All" chip spans the full width for easy access. The floating panel now includes smooth transition animations when docking and undocking to provide a more polished user experience.
 
 ### Flyout Layout
-The `flyout` layout provides a modern, app-like filtering experience. It renders a persistent "Filter Vehicles" trigger button that, when clicked, slides in a dedicated filter panel over a darkened backdrop. Visitors can interact with all filter controls inside the flyout and close it via the close button, clicking the backdrop, or pressing the Escape key. The flyout can be docked to the `bottom` or `right` of the screen using the `flyout_location` attribute.
+The `flyout` layout provides a modern, app-like filtering experience. It renders a persistent "Filter Vehicles" trigger button that, when clicked, slides in a dedicated filter panel over a darkened backdrop. Visitors can interact with all filter controls inside the flyout and close it via the close button, clicking the backdrop, or pressing the Escape key. The flyout can be docked to the `bottom`, `right`, or `left` of the screen using the `flyout_location` attribute.
 
 ## Setup: create an inventory-with-filters page
 

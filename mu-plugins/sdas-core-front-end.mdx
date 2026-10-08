@@ -231,6 +231,24 @@ The **System Settings** tab contains the following setting groups:
 
 Each setting group has its own **Reset to Defaults** button.
 
+#### Lead Save Failure Alerts
+
+The **Lead Save Failure Alerts** toggle (enabled by default) sends an email alert when a WPForms submission is processed but the lead row cannot be inserted into the `sdas_leads` database table — for example, when a field value like `fbclid` or a UTM parameter exceeds its column length.
+
+When a lead save fails, SDAS:
+
+1. Logs the error through the centralized SDAS logging system.
+2. Fires the `sdas_lead_save_failed` action hook so other plugins can react.
+3. Sends a throttled email to the **Admin Email** address (if Email Notifications is enabled).
+
+Alerts are throttled to **one email per failure signature per hour**, so you will not be flooded with duplicate alerts for the same issue. The alert email includes diagnostic information: the database error, the suspected column, fields that exceeded their schema limits (with actual and maximum lengths), the form ID, and a sanitized email hint. The email also includes quick links to **View Leads** and **SDAS Settings**.
+
+<Callout kind="info">
+
+There is no dedicated admin page for lead save failure logs. To review failures, use **SDAS Settings → Error Log**, which shows the last 100 lines of the most recent SDAS log file.
+
+</Callout>
+
 Expect that:
 
 - You work mostly in **SDAS-branded sections** of WordPress admin, rather than in separate plugin menus.

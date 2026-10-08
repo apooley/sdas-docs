@@ -35,6 +35,53 @@ You can review and audit the current field mappings on the **Field Mapping Detai
 -   **Mapping Statistics**: See a summary of how many fields are mapped across different Dynamics entities (Contact, Lead, Credit Application, Attribution Data).
 -   **Detailed Audit**: View a comprehensive table of all active mappings, including the WPForms Field ID, the target Dynamics Field, the data type, and any specialized processors being used.
 
+### Dealership ID
+
+The **Dealership ID** setting lets you tag every lead synced to Microsoft Dynamics with a dealership identifier. Configuration is site-wide, the value is applied to all lead syncs automatically, with no per-form System Mapping entry required.
+
+| Field | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| Dealership ID | Text input | `SDAS` | The identifier value sent to Dynamics for every lead. |
+| Dealership ID Dynamics Field | Text input (placeholder: `sdas_dealership_id`) | (empty) | The Dynamics field name that receives the Dealership ID value. The Dealership ID is only sent to Dynamics when this field is non-empty. |
+
+#### How It Works
+
+The Dealership ID value is automatically added to every Dynamics lead sync. No per-form System Mapping entry is needed. If the Dealership ID Dynamics Field is left empty, the Dealership ID is not sent to Dynamics, even if a Dealership ID value is set. The configured Dynamics field must exist as a creatable field on the target Dynamics lead entity for the sync to succeed.
+
+#### Configuration Steps
+
+<Steps>
+<Step title="Navigate to CRM Settings" icon="settings">
+
+Navigate to **SDAS → CRM Settings** in your WordPress admin.
+
+</Step>
+
+<Step title="Enter the dealership identifier" icon="edit">
+
+Enter your dealership identifier in the **Dealership ID** field. The field defaults to `SDAS`.
+
+</Step>
+
+<Step title="Enter the Dynamics field name" icon="database">
+
+Enter the target Dynamics field name in **Dealership ID Dynamics Field**, for example, `sdas_dealership_id` or `crd99_sdas_dealership_id`.
+
+</Step>
+
+<Step title="Save the configuration" icon="check-circle">
+
+Click **Save Changes**.
+
+</Step>
+</Steps>
+
+<Callout kind="info">
+
+If the Dealership ID Dynamics Field is left empty, no Dealership ID is sent to Dynamics, even if a Dealership ID value is set. This is intentional because Dynamics schemas may use different logical field names or prefixes, so the destination field is optional.
+
+</Callout>
+
 ## The Lead Synchronization Flow
 
 The connector operates asynchronously to ensure that form submissions remain fast and reliable for your visitors.

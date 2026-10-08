@@ -30,6 +30,31 @@ The **Form Mapping** tab is where you connect your front-end WPForms to the stan
 
 The **System Mapping** tab defines mappings for system-level and tracking fields (e.g., UTM parameters, GCLID, referrer URL) that are automatically captured with each lead. This tab helps in attributing lead sources and understanding user behavior. You typically only need to configure this once.
 
+#### Lead Source Code
+
+A new server-computed **Lead Source Code** field is automatically calculated from the visitor's last touchpoint and tier score. It overrides any hidden form values, so the server — not the browser — owns the final value.
+
+The computed format is:
+
+```text
+{last_touch}_{tScore}
+```
+
+For example, if the visitor's last touch is `google_ads` and the tier score is `T2`, the lead source code becomes `google_ads_T2`.
+
+The value is written to both the `leadsourcecode` and `crm_source` fields on the lead record. It is available as a System Mapping source field labeled **"Lead Source Code — Server computed last touch + tier"**.
+
+| Field | Description |
+| :--- | :--- |
+| `leadsourcecode` | Server-computed `{last_touch}_{tScore}` value, written during lead processing. |
+| `crm_source` | Same value as `leadsourcecode`, available for CRM field mapping. |
+
+<Callout kind="warning">
+
+If either `last_touch` or `tScore` is not present at submission time, the computed value is an empty string. Previously supplied `leadsourcecode` or `crm_source` values are removed rather than trusted.
+
+</Callout>
+
 #### Lead Types
 
 The **Lead Types** tab allows you to manage custom lead categories (e.g., "Sales", "Service", "Finance"). 
@@ -68,6 +93,47 @@ Clicking on a lead opens the detailed view, which provides:
 ## Lead Processing Workflow
 
 SDAS Forms Extension integrates with WPForms to capture lead data. When a WPForms submission is completed, the plugin processes the data, normalizes it into the SDAS lead format, and then triggers the `sdas_lead_submitted` action. This action serves as a central integration point for other SDAS plugins, such as the CRM Connector, to pick up and process the new lead.
+
+## Lead Save Failure Alerts
+
+When a lead fails to save to the database (for example, due to a field value exceeding its column length), SDAS can send a throttled email alert so you are informed and can take action.
+
+### Notification Settings
+
+These settings are configured under **SDAS Settings → System Settings → Notification Settings**:
+
+| Setting | Default | Description |
+| :--- | :--- | :--- |
+| Email Notifications | Enabled | Master switch for all SDAS email alerts. Must be enabled for lead save failure alerts to fire. |
+| Lead Save Failure Alerts | Enabled | Sends an email when a lead database insert fails. Includes diagnostics about the likely cause. |
+| Admin Email | (from WordPress Settings) | Preferred recipient for failure alert emails. Falls back to CRM alert email, then mismatch alert email, then WordPress admin email. |
+
+### How Alerts Work
+
+When a lead database insert fails, SDAS:
+
+1. Logs the error through the standard SDAS logging system.
+2. Fires the `sdas_lead_save_failed` action hook so other plugins can react.
+3. Sends a throttled email alert (if enabled) to the configured recipient.
+
+Alerts are throttled to **one email per failure signature per hour**. The failure signature is based on the suspected cause (for example, the database column that overflowed), so you will not be flooded with duplicate alerts for the same issue.
+
+### Diagnostic Information
+
+The alert email includes:
+
+- The database error message
+- The suspected column (for example, `fbclid` or a UTM field that overflowed)
+- Fields that exceeded their schema limits, with actual and maximum lengths
+- The form ID and form title
+- A sanitized email hint (not the full address)
+- Links to **View Leads** and **SDAS Settings** for quick follow-up
+
+<Callout kind="info">
+
+There is no dedicated admin page for lead save failure logs. To review failures, use **SDAS Settings → Error Log**, which shows the last 100 lines of the most recent SDAS log file.
+
+</Callout>
 
 ## Related Documentation
 

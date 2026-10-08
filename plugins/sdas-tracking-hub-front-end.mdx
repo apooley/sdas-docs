@@ -92,6 +92,59 @@ Upload a previously exported JSON bundle to preview what will change before comm
 
 Blocking errors are shown inline next to each affected event in the preview. Once all events are valid, the **Apply Import** button becomes active.
 
+### Attribution Settings
+
+The **Attribution** tab on the Settings page lets you control how Tracking Hub collects and stores visitor source data. These settings determine what attribution data is captured and how long it persists.
+
+#### Cookie TTL
+
+A text field (1–365 days, default 90) that controls how long attribution cookies persist on a visitor's browser. Shorter values expire data sooner; longer values extend the lookback window for connecting conversions to earlier ad clicks.
+
+#### Data Capture Toggles
+
+| Toggle | Description |
+| :--- | :--- |
+| Capture UTM | Store UTM parameters from the landing page URL. |
+| Capture First Touch | Record the first known traffic source for the visitor. |
+| Capture Last Touch | Record the most recent traffic source for the visitor. |
+| Capture Landing Page | Store the landing page URL the visitor first arrived on. |
+| Capture Referrer | Store the referring URL that brought the visitor to your site. |
+| Capture Touchpoint History | Maintain a deduplicated history of visitor touchpoints (capped at 12 entries). |
+
+#### Built-In Vehicle Event Toggles
+
+Each event can be enabled or disabled independently, and DataLayer delivery and Meta CAPI delivery can be controlled separately:
+
+| Event | Description |
+| :--- | :--- |
+| View Vehicle | Triggered when a visitor views a vehicle detail page. |
+| Save Vehicle | Triggered when a visitor saves a vehicle. |
+| Search Vehicles | Triggered when a visitor searches the inventory. |
+
+<Callout kind="tip">
+
+You can enable DataLayer without Meta CAPI if you only need analytics tags, or enable both for full server-side and pixel tracking. The admin interface will warn you if custom event configurations overlap with built-in vehicle events.
+
+</Callout>
+
+### Canonical Source Labels
+
+Tracking Hub normalizes traffic sources into canonical labels so your reports and CRM fields show consistent values:
+
+| Label | Meaning |
+| :--- | :--- |
+| `facebook_ads` | Facebook or Instagram paid traffic |
+| `google_ads` | Google Ads paid traffic |
+| `microsoft_ads` | Microsoft Ads paid traffic |
+| `organic_google` | Google organic search |
+| `organic_bing` | Bing organic search |
+| `organic_yahoo` | Yahoo organic search |
+| `organic_duckduckgo` | DuckDuckGo organic search |
+| `web_referral` | Referring websites |
+| `direct` | Direct navigation (no recognized source) |
+
+For example, whether a visitor arrives from `facebook`, `meta`, or an Instagram ad, the stored source is always `facebook_ads`. Unknown UTM sources are preserved as supplied after sanitization.
+
 ---
 
 ## What you control as a WordPress admin

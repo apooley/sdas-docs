@@ -91,6 +91,72 @@ To ensure high performance and minimize server load, the Tracking Hub uses a two
 
 Developers can configure this behavior via the `sdas_tracking_hub_related_vehicle_configs` PHP filter, specifying the CSS selector, the source of the stock number (text, attribute, or dataset), and the pages where the tracking should run.
 
+## Attribution Improvements
+
+Recent updates to the Tracking Hub improve attribution accuracy and prevent source data loss. These changes are automatic and require no additional configuration beyond enabling Tracking Hub.
+
+### Direct-Touch Protection
+
+Direct visits (typing a URL, using a bookmark, or internal navigation) no longer overwrite an existing non-direct last-touch source. If a visitor arrived via a paid or organic channel and later returns directly, the original marketing source is preserved.
+
+This protection applies both server-side (`AttributionTracker`) and browser-side (`tracking.js`), so it works even if JavaScript attribution is unavailable.
+
+### Touchpoint Deduplication
+
+Touchpoint history now collapses consecutive same-source entries into a single record with an incrementing count, rather than creating duplicate entries. For example, three consecutive Google Ads visits appear as `google_ads 3` instead of three separate records.
+
+History is capped at 12 entries. A page-load capture key (source plus path/query string) prevents the same page load from being recorded more than once.
+
+### Canonical Source Labels
+
+Tracking Hub normalizes traffic sources into canonical labels for consistent reporting across CRM fields, GA4, Google Ads, and Meta:
+
+| Label | Description |
+| :--- | :--- |
+| `facebook_ads` | Facebook or Instagram paid traffic (also via `fbclid` or Meta referrer) |
+| `google_ads` | Google Ads paid traffic (also via `gclid`, `gbraid`, or `wbraid`) |
+| `microsoft_ads` | Microsoft Ads paid traffic (also via `msclkid`) |
+| `organic_google` | Google organic search referrer |
+| `organic_bing` | Bing organic search referrer |
+| `organic_yahoo` | Yahoo organic search referrer |
+| `organic_duckduckgo` | DuckDuckGo organic search referrer |
+| `web_referral` | Other external referring websites |
+| `direct` | Direct navigation with no recognized source |
+
+Unknown UTM sources are preserved as supplied after sanitization. Canonicalization applies only to recognized platforms.
+
+### Meta Referrer and `_fbc` Support
+
+Facebook and Instagram referrers (`facebook.com`, `instagram.com` and their subdomains) are now explicitly classified as `facebook_ads` paid traffic.
+
+The Meta `_fbc` cookie is recognized as a fallback even when the current URL has no `fbclid` parameter. If the `_fbc` value matches the Meta click-ID format, the source is set to `facebook_ads` and the click ID is extracted.
+
+For Meta CAPI sends, `ServerConversionSender` now:
+
+- Reads the `_fbc` cookie and uses it if it is structurally valid.
+- Otherwise constructs a new `fbc` value from the `fbclid` parameter.
+- Preserves the original first-seen timestamp from `sdas_fbclid_secure` when available.
+- Forwards `_fbp` into Meta `user_data`.
+
+This ensures Meta CAPI conversions retain browser-level matching information even when the form submission happens after the original ad click.
+
+### Tier Payload Promotion
+
+The `tScore` custom parameter (values like `T1`, `T2`, `T10`) is now promoted into server-owned payloads for configured finance events. When a matching event is triggered:
+
+1. The handler resolves the `tScore` custom parameter (case-insensitive, must match `T` followed by digits).
+2. The tier value is added to the server-owned payload alongside `value`, `currency`, and `transaction_id`.
+3. The payload is stored for lead-save injection and returned in the WPForms AJAX response.
+4. If DataLayer delivery is enabled, the browser pushes a `lead_submit_T1` event (or equivalent tier) with the transaction ID.
+
+The tier is a separate lead-quality signal — it is not treated as the monetary conversion value.
+
+<Callout kind="info">
+
+These attribution improvements are automatic and require no additional configuration beyond enabling Tracking Hub and configuring attribution settings.
+
+</Callout>
+
 ## Related Documentation
 
 <Columns cols={2}>
